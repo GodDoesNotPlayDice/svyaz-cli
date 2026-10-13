@@ -65,6 +65,10 @@ var (
 				Bold(true).
 				Foreground(lipgloss.Color(ColorAccentBlue))
 
+	PromptCursorStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color(ColorAccentBlue))
+
 	PromptInputTextStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color(ColorTextPrimary))
 

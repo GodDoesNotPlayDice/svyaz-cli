@@ -44,7 +44,7 @@ type Model struct {
 
 func NewModel(info HeaderInfo) Model {
 	ti := textinput.New()
-	ti.Prompt = PromptPromptStyle.Render("> ")
+	ti.Prompt = "> "
 	ti.PromptStyle = PromptPromptStyle
 	ti.TextStyle = PromptInputTextStyle
 	ti.Placeholder = ""
@@ -338,14 +338,58 @@ func (m Model) renderContent() string {
 	return b.String()
 }
 
-// renderInputArea renders the prompt framed immediately above and below by two light-gray bars
+// renderPromptInput renders the prompt with a blinking underscore cursor '_'
+func renderPromptInput(ti textinput.Model) string {
+	prompt := PromptPromptStyle.Render(ti.Prompt)
+	val := []rune(ti.Value())
+	pos := ti.Position()
+	if pos < 0 {
+		pos = 0
+	}
+	if pos > len(val) {
+		pos = len(val)
+	}
+
+	if !ti.Focused() {
+		return prompt + ti.TextStyle.Render(string(val))
+	}
+
+	cursorChar := " "
+	if !ti.Cursor.Blink {
+		cursorChar = "_"
+	}
+	cursorRendered := PromptCursorStyle.Render(cursorChar)
+
+	if len(val) == 0 {
+		return prompt + cursorRendered
+	}
+
+	if pos == len(val) {
+		return prompt + ti.TextStyle.Render(string(val)) + cursorRendered
+	}
+
+	// Cursor is over an existing character
+	before := ti.TextStyle.Render(string(val[:pos]))
+	after := ti.TextStyle.Render(string(val[pos+1:]))
+
+	midChar := string(val[pos])
+	if !ti.Cursor.Blink {
+		midChar = ti.TextStyle.Underline(true).Render(midChar)
+	} else {
+		midChar = ti.TextStyle.Render(midChar)
+	}
+
+	return prompt + before + midChar + after
+}
+
+// renderInputArea renders the prompt framed immediately above and below by two subtle gray bars
 func (m Model) renderInputArea() string {
 	w := m.width
 	if w <= 0 {
 		w = 80
 	}
 	bar := SeparatorLineStyle.Render(strings.Repeat("─", w))
-	promptLine := lipgloss.NewStyle().PaddingLeft(1).Render(m.input.View())
+	promptLine := lipgloss.NewStyle().PaddingLeft(1).Render(renderPromptInput(m.input))
 
 	return bar + "\n" + promptLine + "\n" + bar
 }

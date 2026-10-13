@@ -84,16 +84,16 @@
     "semantic_hash": "a1caae9aea1a11b8fd3683e23a719887"
   },
   "internal/ui/styles.go": {
-    "mtime": 1791921104.9770637,
-    "seen": 1791921127.5785975,
-    "ast_hash": "1cbf3e9d65756aa6d7e21ea27efa1bd5",
-    "semantic_hash": "1cbf3e9d65756aa6d7e21ea27efa1bd5"
+    "mtime": 1791921869.2639692,
+    "seen": 1791921937.7757645,
+    "ast_hash": "01bca0b241f665a8d002169a4d3ae550",
+    "semantic_hash": "01bca0b241f665a8d002169a4d3ae550"
   },
   "internal/ui/tui.go": {
-    "mtime": 1791920785.7170687,
-    "seen": 1791920818.2408664,
-    "ast_hash": "71bcff6b0e8ea50f202842bfc8dec986",
-    "semantic_hash": "71bcff6b0e8ea50f202842bfc8dec986"
+    "mtime": 1791921911.5047226,
+    "seen": 1791921937.7757702,
+    "ast_hash": "6c44ab54dafa0320b5ff796ffc3c7d26",
+    "semantic_hash": "6c44ab54dafa0320b5ff796ffc3c7d26"
   },
   "main.go": {
     "mtime": 1791855998.7497473,
