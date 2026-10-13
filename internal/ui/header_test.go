@@ -215,3 +215,89 @@ func TestUIRefinements_DownwardElongation(t *testing.T) {
 			promptIdx-msgIdx)
 	}
 }
+
+func TestSlashCommandAutocomplete(t *testing.T) {
+	info := HeaderInfo{
+		Version:      "v1.0.0",
+		WorkDir:      "/home/xaxa/Documents/Github/svyaz-cli",
+		CurrentModel: "deepseek-coder",
+	}
+
+	m := NewModel(info)
+	res, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 30})
+	m = res.(Model)
+
+	// 1. Test typing "/h" - suggests /help and shows navigation hints
+	m.input.SetValue("/h")
+	view := m.View()
+
+	fmt.Println("--- AUTOCOMPLETE MENU FOR /h ---")
+	fmt.Println(view)
+
+	if !strings.Contains(view, "/help") {
+		t.Errorf("expected autocomplete menu to contain /help, got:\n%s", view)
+	}
+	if !strings.Contains(view, "Navigate") || !strings.Contains(view, "enter Select") || !strings.Contains(view, "tab complete") {
+		t.Errorf("expected autocomplete navigation hint, got:\n%s", view)
+	}
+	if !strings.Contains(view, "esc para salir de ese pequeño menú") {
+		t.Errorf("expected esc exit hint, got:\n%s", view)
+	}
+
+	// 2. Test typing "/" - lists all commands and allows arrow navigation
+	m.input.SetValue("/")
+	m.autocompleteDismissed = false
+	m.autocompleteIndex = 0
+
+	fmt.Println("--- AUTOCOMPLETE MENU FOR / ---")
+	fmt.Println(m.View())
+
+	// Press KeyDown: should select second command (/clear)
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = res.(Model)
+	if m.autocompleteIndex != 1 {
+		t.Errorf("expected autocompleteIndex to be 1 after KeyDown, got %d", m.autocompleteIndex)
+	}
+
+	// 3. Test Tab key completion
+	// Set to "/h" and press Tab: should complete to "/help "
+	m.input.SetValue("/h")
+	m.autocompleteDismissed = false
+	m.autocompleteIndex = 0
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = res.(Model)
+
+	if !strings.HasPrefix(m.input.Value(), "/help") {
+		t.Errorf("expected input to autocomplete to /help, got %q", m.input.Value())
+	}
+
+	// 4. Test Esc key dismisses menu while keeping text
+	m.input.SetValue("/h")
+	m.autocompleteDismissed = false
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+
+	if !m.autocompleteDismissed {
+		t.Errorf("expected autocomplete to be dismissed on Esc")
+	}
+	viewAfterEsc := m.View()
+	if strings.Contains(viewAfterEsc, "Navigate · enter Select") {
+		t.Errorf("expected menu to be hidden after Esc, but was present")
+	}
+	if m.input.Value() != "/h" {
+		t.Errorf("expected input to retain '/h', got %q", m.input.Value())
+	}
+
+	// 5. Test Enter key selects and executes the command
+	m.input.SetValue("/h")
+	m.autocompleteDismissed = false
+	m.autocompleteIndex = 0
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = res.(Model)
+
+	// Since /help was selected, messages should contain help text
+	viewAfterEnter := m.View()
+	if !strings.Contains(viewAfterEnter, "Atajos y comandos disponibles") {
+		t.Errorf("expected /help command to execute on Enter, got:\n%s", viewAfterEnter)
+	}
+}

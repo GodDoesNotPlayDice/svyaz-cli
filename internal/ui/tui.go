@@ -32,21 +32,37 @@ type MessageItem struct {
 	Patch   *DiffPatch
 }
 
+type SlashCommand struct {
+	Name        string
+	Description string
+}
+
+var defaultSlashCommands = []SlashCommand{
+	{Name: "/help", Description: "Mostrar comandos y atajos disponibles"},
+	{Name: "/clear", Description: "Limpiar historial de la pantalla"},
+	{Name: "/status", Description: "Estado del sistema, modelo y arnés"},
+	{Name: "/plan", Description: "Planificar tarea con Graphify y AST"},
+	{Name: "/verify", Description: "Ejecutar verificación determinista local"},
+	{Name: "/quit", Description: "Salir de svyaz-cli"},
+}
+
 type Model struct {
-	state        AppState
-	headerInfo   HeaderInfo
-	input        textinput.Model
-	viewport     viewport.Model
-	spinner      spinner.Model
-	spinnerText  string
-	messages     []MessageItem
-	currentPatch *DiffPatch
-	rawPatch     *agent.Patch
-	orchestrator *agent.Orchestrator
-	totalTokens  int
-	width        int
-	height       int
-	ready        bool
+	state                 AppState
+	headerInfo            HeaderInfo
+	input                 textinput.Model
+	viewport              viewport.Model
+	spinner               spinner.Model
+	spinnerText           string
+	messages              []MessageItem
+	currentPatch          *DiffPatch
+	rawPatch              *agent.Patch
+	orchestrator          *agent.Orchestrator
+	totalTokens           int
+	autocompleteIndex     int
+	autocompleteDismissed bool
+	width                 int
+	height                int
+	ready                 bool
 }
 
 func NewModel(info HeaderInfo, orch ...*agent.Orchestrator) Model {
@@ -95,10 +111,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		matching := m.getMatchingCommands()
+		isMenuOpen := len(matching) > 0 && !m.autocompleteDismissed
+
 		switch msg.Type {
 		case tea.KeyCtrlC:
 			return m, tea.Quit
+
 		case tea.KeyEsc:
+			if isMenuOpen {
+				m.autocompleteDismissed = true
+				return m, nil
+			}
 			if m.state == StateConfirmPatch {
 				m.state = StateIdle
 				m.currentPatch = nil
@@ -112,14 +136,56 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.input.SetValue("")
 			return m, nil
+
+		case tea.KeyUp:
+			if isMenuOpen {
+				m.autocompleteIndex--
+				if m.autocompleteIndex < 0 {
+					m.autocompleteIndex = len(matching) - 1
+				}
+				return m, nil
+			}
+
+		case tea.KeyDown:
+			if isMenuOpen {
+				m.autocompleteIndex++
+				if m.autocompleteIndex >= len(matching) {
+					m.autocompleteIndex = 0
+				}
+				return m, nil
+			}
+
+		case tea.KeyTab:
+			if isMenuOpen {
+				idx := m.autocompleteIndex
+				if idx >= 0 && idx < len(matching) {
+					selected := matching[idx]
+					m.input.SetValue(selected.Name + " ")
+					m.input.SetCursor(len(m.input.Value()))
+					m.autocompleteDismissed = true
+				}
+				return m, nil
+			}
+
 		case tea.KeyEnter:
 			if m.state == StateConfirmPatch {
 				return m, nil
 			}
+
+			// If autocomplete menu is active, select the highlighted command
+			if isMenuOpen && len(matching) > 0 {
+				idx := m.autocompleteIndex
+				if idx >= 0 && idx < len(matching) {
+					m.input.SetValue(matching[idx].Name)
+				}
+				m.autocompleteDismissed = true
+			}
+
 			val := strings.TrimSpace(m.input.Value())
 			if val == "" {
 				return m, nil
 			}
+			m.autocompleteDismissed = false
 
 			if val == "/quit" || val == "/exit" {
 				return m, tea.Quit
@@ -136,11 +202,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.addMessage(MessageItem{
 					Role: "agent",
 					Content: "Atajos y comandos disponibles:\n" +
-						"  ? o /help - Mostrar comandos disponibles\n" +
-						"  /clear    - Limpiar historial de la pantalla\n" +
-						"  /status   - Estado del arnés y MCPs\n" +
-						"  /quit     - Salir de svyaz-cli\n" +
-						"  Esc       - Cancelar acción o limpiar entrada",
+						"  /help   - Mostrar comandos y atajos disponibles\n" +
+						"  /clear  - Limpiar historial de la pantalla\n" +
+						"  /status - Estado del sistema, modelo y arnés\n" +
+						"  /plan   - Planificar tarea con Graphify y AST\n" +
+						"  /verify - Ejecutar verificación determinista local\n" +
+						"  /quit   - Salir de svyaz-cli\n" +
+						"  Esc     - Cancelar acción o cerrar menú",
 				})
 				m.input.SetValue("")
 				m.updateViewportContent()
@@ -160,6 +228,71 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.SetValue("")
 				m.updateViewportContent()
 				return m, nil
+			}
+
+			if val == "/plan" {
+				m.addMessage(MessageItem{
+					Role:    "user",
+					Content: "/plan",
+				})
+				m.input.SetValue("")
+				m.state = StatePlanning
+				m.headerInfo.ModelStatus = "Planning..."
+				m.spinnerText = "Planner Agent: Consultando grafo de dependencias y AST..."
+				m.addMessage(MessageItem{
+					Role: "tool",
+					Badge: &ToolBadge{
+						ToolName: "planner",
+						Action:   "repo-map",
+						Details:  "Analizando mapa del repositorio y símbolos clave...",
+						Status:   ActionSuccess,
+					},
+				})
+				m.updateViewportContent()
+				if m.orchestrator != nil {
+					orch := m.orchestrator
+					return m, tea.Batch(
+						m.spinner.Tick,
+						func() tea.Msg {
+							res, err := orch.ProcessInput(context.Background(), "Analizar arquitectura del proyecto y planificar tareas", nil)
+							return taskResultMsg{Result: res, Err: err}
+						},
+					)
+				}
+				return m, tea.Batch(
+					m.spinner.Tick,
+					func() tea.Msg {
+						return plannerFinishedMsg{}
+					},
+				)
+			}
+
+			if val == "/verify" {
+				m.addMessage(MessageItem{
+					Role:    "user",
+					Content: "/verify",
+				})
+				m.input.SetValue("")
+				m.state = StateReviewing
+				m.headerInfo.ModelStatus = "Verifying..."
+				m.spinnerText = "Reviewer Agent: Ejecutando verificación determinista local..."
+				m.updateViewportContent()
+				if m.orchestrator != nil {
+					orch := m.orchestrator
+					return m, tea.Batch(
+						m.spinner.Tick,
+						func() tea.Msg {
+							res, err := orch.ApplyAndVerify(nil)
+							return verificationDoneMsg{Result: res, Err: err}
+						},
+					)
+				}
+				return m, tea.Batch(
+					m.spinner.Tick,
+					func() tea.Msg {
+						return reviewerFinishedMsg{}
+					},
+				)
 			}
 
 			// Add user message
@@ -522,7 +655,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.input.Width = msg.Width - 4
 	}
 
+	prevVal := m.input.Value()
 	m.input, tiCmd = m.input.Update(msg)
+	newVal := m.input.Value()
+	if prevVal != newVal {
+		m.autocompleteDismissed = false
+		m.autocompleteIndex = 0
+	}
 	m.viewport, vpCmd = m.viewport.Update(msg)
 
 	return m, tea.Batch(tiCmd, vpCmd)
@@ -664,6 +803,88 @@ func (m Model) renderInputArea() string {
 	return bar + "\n" + promptLine + "\n" + bar
 }
 
+func (m Model) getMatchingCommands() []SlashCommand {
+	val := m.input.Value()
+	if !strings.HasPrefix(val, "/") {
+		return nil
+	}
+	if strings.Contains(val, " ") {
+		return nil
+	}
+
+	var matches []SlashCommand
+	for _, cmd := range defaultSlashCommands {
+		if strings.HasPrefix(cmd.Name, val) {
+			matches = append(matches, cmd)
+		}
+	}
+	return matches
+}
+
+// renderAutocompleteMenu renders the floating command navigation below the input line
+func (m Model) renderAutocompleteMenu() string {
+	matching := m.getMatchingCommands()
+	if len(matching) == 0 || m.autocompleteDismissed {
+		return ""
+	}
+
+	idx := m.autocompleteIndex
+	if idx < 0 {
+		idx = 0
+	}
+	if idx >= len(matching) {
+		idx = len(matching) - 1
+	}
+
+	var sb strings.Builder
+
+	maxNameLen := 0
+	for _, cmd := range matching {
+		if len(cmd.Name) > maxNameLen {
+			maxNameLen = len(cmd.Name)
+		}
+	}
+
+	for i, cmd := range matching {
+		isSelected := i == idx
+		padding := strings.Repeat(" ", maxNameLen-len(cmd.Name)+3)
+
+		if isSelected {
+			cursor := MenuCursorStyle.Render("› ")
+			cmdStr := MenuCmdSelectedStyle.Render(cmd.Name + padding)
+			descStr := MenuDescSelectedStyle.Render(cmd.Description)
+			sb.WriteString(fmt.Sprintf("  %s%s%s\n", cursor, cmdStr, descStr))
+		} else {
+			cmdStr := MenuCmdNormalStyle.Render(cmd.Name + padding)
+			descStr := MenuDescNormalStyle.Render(cmd.Description)
+			sb.WriteString(fmt.Sprintf("    %s%s\n", cmdStr, descStr))
+		}
+	}
+
+	sb.WriteString("\n")
+
+	// Shortcut navigation hint line 1:
+	// ↑ / ↓ Navigate  ·  enter Select  ·  tab complete
+	keyNav := MenuHintKeyStyle.Render("↑ / ↓")
+	textNav := MenuHintTextStyle.Render(" Navigate")
+	dot := MenuHintSeparatorStyle.Render("  ·  ")
+	keyEnter := MenuHintKeyStyle.Render("enter")
+	textEnter := MenuHintTextStyle.Render(" Select")
+	keyTab := MenuHintKeyStyle.Render("tab")
+	textTab := MenuHintTextStyle.Render(" complete")
+
+	sb.WriteString(fmt.Sprintf("  %s%s%s%s%s%s%s%s\n",
+		keyNav, textNav, dot, keyEnter, textEnter, dot, keyTab, textTab))
+
+	// Shortcut navigation hint line 2 (directly under navigate):
+	// esc para salir de ese pequeño menú
+	keyEsc := MenuHintKeyStyle.Render("esc")
+	textEsc := MenuHintTextStyle.Render(" para salir de ese pequeño menú")
+	sb.WriteString(fmt.Sprintf("  %s%s", keyEsc, textEsc))
+
+	return sb.String()
+}
+
 func (m Model) View() string {
 	if !m.ready {
 		return "Inicializando svyaz-cli..."
@@ -672,24 +893,35 @@ func (m Model) View() string {
 	header := RenderHeader(m.headerInfo, m.width)
 	footer := RenderFooter(m.headerInfo.CurrentModel, m.width)
 	inputArea := m.renderInputArea()
+	menuStr := m.renderAutocompleteMenu()
 
 	headerH := lipgloss.Height(header)
 	footerH := lipgloss.Height(footer)
 	inputH := lipgloss.Height(inputArea)
-	maxChatH := m.height - headerH - inputH - footerH
+	menuH := 0
+	if menuStr != "" {
+		menuH = lipgloss.Height(menuStr)
+	}
+
+	maxChatH := m.height - headerH - inputH - menuH - footerH
 	if maxChatH < 2 {
 		maxChatH = 2
+	}
+
+	inputWithMenu := inputArea
+	if menuStr != "" {
+		inputWithMenu = inputArea + "\n" + menuStr
 	}
 
 	contentStr := m.renderContent()
 	trimmedContent := strings.TrimRight(contentStr, "\n")
 
-	// Si no hay mensajes ni proceso en curso: header arriba, inputArea inmediatamente después
+	// Si no hay mensajes ni proceso en curso: header arriba, inputArea (+ menú) inmediatamente después
 	if trimmedContent == "" {
 		body := lipgloss.JoinVertical(
 			lipgloss.Left,
 			header,
-			inputArea,
+			inputWithMenu,
 		)
 		usedLines := lipgloss.Height(body)
 		remaining := m.height - usedLines - footerH
@@ -708,7 +940,7 @@ func (m Model) View() string {
 			lipgloss.Left,
 			header,
 			contentView,
-			inputArea,
+			inputWithMenu,
 		)
 		usedLines := lipgloss.Height(body)
 		remaining := m.height - usedLines - footerH
@@ -726,7 +958,7 @@ func (m Model) View() string {
 		lipgloss.Left,
 		header,
 		vpContent,
-		inputArea,
+		inputWithMenu,
 		footer,
 	)
 }

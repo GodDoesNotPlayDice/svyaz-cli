@@ -153,4 +153,35 @@ var (
 
 	DiffChoiceDimStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color(ColorTextDim))
+
+	// Autocomplete Menu Styles
+	MenuContainerStyle = lipgloss.NewStyle().
+				Padding(0, 1)
+
+	MenuCursorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(ColorAccentBlue)).
+			Bold(true)
+
+	MenuCmdSelectedStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorAccentBlue)).
+				Bold(true)
+
+	MenuDescSelectedStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorTextPrimary))
+
+	MenuCmdNormalStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorTextMuted))
+
+	MenuDescNormalStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorTextDim))
+
+	MenuHintKeyStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorAccentBlue)).
+				Bold(true)
+
+	MenuHintTextStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorTextDim))
+
+	MenuHintSeparatorStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorBorderLight))
 )
