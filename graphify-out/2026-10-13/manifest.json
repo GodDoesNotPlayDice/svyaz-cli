@@ -30,10 +30,10 @@
     "semantic_hash": "abbf89ba6a27f131a71bfeea41c46606"
   },
   "internal/agent/types.go": {
-    "mtime": 1791928214.8386343,
-    "seen": 1791928564.9780223,
-    "ast_hash": "0ab2546a7eec579bfe4f7276e6f3aa6b",
-    "semantic_hash": "0ab2546a7eec579bfe4f7276e6f3aa6b"
+    "mtime": 1791933172.7395985,
+    "seen": 1791933628.8148847,
+    "ast_hash": "e9ffb0554c66555023c543e03016de75",
+    "semantic_hash": "e9ffb0554c66555023c543e03016de75"
   },
   "internal/config/config.go": {
     "mtime": 1791923812.6344712,
@@ -60,10 +60,10 @@
     "semantic_hash": "15886f3b9ed5f299c36a2bebdbfcdb3e"
   },
   "internal/ui/badge.go": {
-    "mtime": 1791924163.1442964,
-    "seen": 1791927276.088427,
-    "ast_hash": "2b3d95e0759cf286d7d7367902ffb079",
-    "semantic_hash": "2b3d95e0759cf286d7d7367902ffb079"
+    "mtime": 1791933153.2016003,
+    "seen": 1791933628.8155906,
+    "ast_hash": "54fd1809dc8d06487dd15fa38bdf516e",
+    "semantic_hash": "54fd1809dc8d06487dd15fa38bdf516e"
   },
   "internal/ui/diffview.go": {
     "mtime": 1791856036.0663311,
@@ -90,10 +90,10 @@
     "semantic_hash": "e1db57a11abc32a1e2e99186edac9b4c"
   },
   "internal/ui/tui.go": {
-    "mtime": 1791928934.1109161,
-    "seen": 1791929064.7134905,
-    "ast_hash": "8fab5313b7fb0f2ac0b104ef6f30c76f",
-    "semantic_hash": "8fab5313b7fb0f2ac0b104ef6f30c76f"
+    "mtime": 1791933550.8695896,
+    "seen": 1791933628.8158138,
+    "ast_hash": "a4c9c44b16435b027cdd7c5648854913",
+    "semantic_hash": "a4c9c44b16435b027cdd7c5648854913"
   },
   "main.go": {
     "mtime": 1791855998.7497473,
@@ -102,10 +102,10 @@
     "semantic_hash": "70c2b79a6fb407f74547771e99e984ff"
   },
   "internal/ui/header_test.go": {
-    "mtime": 1791929007.4227188,
-    "seen": 1791929064.7134502,
-    "ast_hash": "fb18b3ce2cc689fd4af22c6450f33722",
-    "semantic_hash": "fb18b3ce2cc689fd4af22c6450f33722"
+    "mtime": 1791933598.0645912,
+    "seen": 1791933628.8156998,
+    "ast_hash": "2446249c7c74e235223e0010e709cd2c",
+    "semantic_hash": "2446249c7c74e235223e0010e709cd2c"
   },
   "internal/agent/agent_test.go": {
     "mtime": 1791927232.3410003,
@@ -120,10 +120,10 @@
     "semantic_hash": "50aaf2f1058f8508df4f5d679fde5ca6"
   },
   "internal/agent/orchestrator.go": {
-    "mtime": 1791928252.0363142,
-    "seen": 1791928564.9779832,
-    "ast_hash": "f63ee22fbd4491870379f29848a833fb",
-    "semantic_hash": "f63ee22fbd4491870379f29848a833fb"
+    "mtime": 1791933293.7775903,
+    "seen": 1791933628.8147652,
+    "ast_hash": "3a0f39814e329e925366f36456da5b2f",
+    "semantic_hash": "3a0f39814e329e925366f36456da5b2f"
   },
   "internal/agent/planner.go": {
     "mtime": 1791928203.3577373,

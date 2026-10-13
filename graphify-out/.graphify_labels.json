@@ -1,1 +1,1 @@
-{"0": "tui.go", "1": "Model", "2": "header_test.go", "3": "llm/types.go", "4": "verifier.go", "5": "config.go", "6": "Client", "7": "agent/types.go", "8": "header.go", "9": "validator.go", "10": "github.com/xaxa/svyaz-cli"}
+{"0": "tui.go", "1": "Model", "2": "header_test.go", "3": "llm/types.go", "4": "verifier.go", "5": "Client", "6": "config.go", "7": "agent/types.go", "8": "header.go", "9": "validator.go", "10": "ActionStatus", "11": "github.com/xaxa/svyaz-cli", "12": "ToolBadge"}

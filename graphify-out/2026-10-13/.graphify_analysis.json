@@ -23,18 +23,18 @@
       "go_pkg_sync",
       "go_pkg_testing",
       "go_pkg_time",
+      "internal_agent_agent_test",
       "internal_agent_coder",
       "internal_agent_orchestrator",
       "internal_agent_planner",
       "internal_context_compressor",
-      "internal_context_compressor_compressoutput",
       "internal_context_repomap_test",
-      "internal_context_repomap_test_testcompressoutput",
       "internal_llm_client",
       "internal_llm_client_test",
       "internal_llm_live_test",
       "internal_llm_pool",
       "internal_llm_pool_test",
+      "internal_ui_badge",
       "internal_ui_diffview",
       "internal_ui_styles",
       "internal_ui_tui",
@@ -46,7 +46,6 @@
       "ui_reviewerfinishedmsg"
     ],
     "1": [
-      "actionstatus",
       "diffpatch",
       "go_type_github_com_charmbracelet_bubbles_spinner_model",
       "go_type_github_com_charmbracelet_bubbles_textinput_model",
@@ -55,12 +54,11 @@
       "go_type_github_com_charmbracelet_bubbletea_model",
       "go_type_github_com_charmbracelet_bubbletea_msg",
       "headerinfo",
-      "internal_ui_badge",
+      "internal_ui_badge_renderthought",
       "internal_ui_badge_rendertoolbadge",
       "internal_ui_diffview_renderdiffview",
       "internal_ui_tui_renderpromptinput",
       "internal_ui_tui_toactionstatus",
-      "toolbadge",
       "ui_actionstatus",
       "ui_appstate",
       "ui_diffpatch",
@@ -76,18 +74,16 @@
       "ui_model_updateviewportcontent",
       "ui_model_view",
       "ui_slashcommand",
+      "ui_thoughtinfo",
       "ui_toolbadge"
     ],
     "2": [
-      "agent_coderagent_generatepatch",
       "go_type_sync_rwmutex",
       "go_type_testing_t",
       "go_type_time_duration",
-      "internal_agent_agent_test",
-      "internal_agent_agent_test_testextractdiff_markdownblock",
-      "internal_agent_agent_test_testorchestrator_greetingintent",
-      "internal_agent_agent_test_testparseplannerresult",
-      "internal_agent_coder_extractdiff",
+      "go_type_time_time",
+      "internal_context_compressor_compressoutput",
+      "internal_context_repomap_test_testcompressoutput",
       "internal_llm_client_newclient",
       "internal_llm_client_test_testclient_streamandfallback",
       "internal_llm_live_test_testlive_freellmapi_connection",
@@ -96,6 +92,7 @@
       "internal_llm_pool_test_testmodelpool_circuitbreakeron429",
       "internal_llm_pool_test_testmodelpool_filterrequirestools",
       "internal_ui_header_test",
+      "internal_ui_header_test_testantigravityverbosityandthoughts",
       "internal_ui_header_test_testmessagewordwrapping",
       "internal_ui_header_test_testrenderheaderandfooter",
       "internal_ui_header_test_testslashcommandautocomplete",
@@ -165,6 +162,30 @@
       "ui_verificationdonemsg"
     ],
     "5": [
+      "agent_coderagent",
+      "agent_orchestrator_planandgeneratepatch",
+      "agent_orchestrator_processinput",
+      "agent_orchestratorcallbacks",
+      "agent_planneragent",
+      "coderagent",
+      "context_repomap",
+      "context_repomap_extractdependencies",
+      "context_repomap_extractgosymbols",
+      "context_repomap_generate",
+      "go_type_net_http_client",
+      "internal_agent_agent_test_testorchestrator_greetingintent",
+      "internal_agent_coder_newcoderagent",
+      "internal_agent_orchestrator_go_agent_orchestrator",
+      "internal_agent_orchestrator_neworchestrator",
+      "internal_agent_planner_newplanneragent",
+      "internal_context_repomap_newrepomap",
+      "internal_context_repomap_test_testrepomap_generate",
+      "internal_llm_client_go_llm_client",
+      "internal_llm_client_go_llm_fallbackevent",
+      "planneragent",
+      "revieweragent"
+    ],
+    "6": [
       "cmd_root",
       "cmd_root_execute",
       "cmd_root_init",
@@ -187,28 +208,8 @@
       "main",
       "main_main"
     ],
-    "6": [
-      "agent_coderagent",
-      "agent_orchestrator_planandgeneratepatch",
-      "agent_orchestrator_processinput",
-      "agent_orchestratorcallbacks",
-      "agent_planneragent",
-      "context_repomap",
-      "context_repomap_extractdependencies",
-      "context_repomap_extractgosymbols",
-      "context_repomap_generate",
-      "go_type_net_http_client",
-      "internal_agent_coder_newcoderagent",
-      "internal_agent_orchestrator_go_agent_orchestrator",
-      "internal_agent_orchestrator_neworchestrator",
-      "internal_agent_planner_newplanneragent",
-      "internal_context_repomap_newrepomap",
-      "internal_context_repomap_test_testrepomap_generate",
-      "internal_llm_client_go_llm_client",
-      "internal_llm_client_go_llm_fallbackevent",
-      "revieweragent"
-    ],
     "7": [
+      "agent_coderagent_generatepatch",
       "agent_executionstep",
       "agent_intenttype",
       "agent_message",
@@ -219,8 +220,10 @@
       "agent_role",
       "agent_toolcall",
       "agent_toolresult",
-      "go_type_time_time",
+      "internal_agent_agent_test_testextractdiff_markdownblock",
       "internal_agent_agent_test_testparseplancontent",
+      "internal_agent_agent_test_testparseplannerresult",
+      "internal_agent_coder_extractdiff",
       "internal_agent_planner_parseplancontent",
       "internal_agent_planner_parseplannerresult",
       "internal_agent_types",
@@ -248,21 +251,29 @@
       "mcp_validator_validate"
     ],
     "10": [
+      "actionstatus"
+    ],
+    "11": [
       "pkg_github_com_xaxa_svyaz_cli"
+    ],
+    "12": [
+      "toolbadge"
     ]
   },
   "cohesion": {
-    "0": 0.13399778516057587,
-    "1": 0.0967741935483871,
-    "2": 0.11182795698924732,
+    "0": 0.14285714285714285,
+    "1": 0.10344827586206896,
+    "2": 0.1206896551724138,
     "3": 0.15384615384615385,
     "4": 0.15019762845849802,
-    "5": 0.14761904761904762,
-    "6": 0.17543859649122806,
-    "7": 0.19852941176470587,
+    "5": 0.1341991341991342,
+    "6": 0.14761904761904762,
+    "7": 0.15789473684210525,
     "8": 0.3333333333333333,
     "9": 0.47619047619047616,
-    "10": 1.0
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0
   },
   "gods": [
     {
@@ -286,23 +297,23 @@
       "degree": 12
     },
     {
+      "id": "internal_ui_tui_newmodel",
+      "label": "NewModel()",
+      "degree": 10
+    },
+    {
       "id": "internal_agent_types_go_agent_patch",
       "label": "Patch",
       "degree": 9
     },
     {
-      "id": "internal_ui_tui_newmodel",
-      "label": "NewModel()",
-      "degree": 9
+      "id": "internal_llm_pool_newmodelpool",
+      "label": "NewModelPool()",
+      "degree": 8
     },
     {
       "id": "internal_agent_orchestrator_neworchestrator",
       "label": "NewOrchestrator()",
-      "degree": 8
-    },
-    {
-      "id": "internal_llm_pool_newmodelpool",
-      "label": "NewModelPool()",
       "degree": 8
     },
     {
@@ -318,33 +329,11 @@
   ],
   "surprises": [
     {
-      "source": "TestOrchestrator_GreetingIntent()",
-      "target": "NewOrchestrator()",
-      "source_files": [
-        "internal/agent/agent_test.go",
-        "internal/agent/orchestrator.go"
-      ],
-      "confidence": "INFERRED",
-      "relation": "calls",
-      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
-    },
-    {
       "source": "NewOrchestrator()",
       "target": "NewReviewerAgent()",
       "source_files": [
         "internal/agent/orchestrator.go",
         "internal/agent/reviewer.go"
-      ],
-      "confidence": "INFERRED",
-      "relation": "calls",
-      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
-    },
-    {
-      "source": "TestParsePlannerResult()",
-      "target": "parsePlannerResult()",
-      "source_files": [
-        "internal/agent/agent_test.go",
-        "internal/agent/planner.go"
       ],
       "confidence": "INFERRED",
       "relation": "calls",
@@ -371,6 +360,28 @@
       "confidence": "EXTRACTED",
       "relation": "calls",
       "why": "connects across different repos/directories"
+    },
+    {
+      "source": "TestCompressOutput()",
+      "target": "CompressOutput()",
+      "source_files": [
+        "internal/context/repomap_test.go",
+        "internal/context/compressor.go"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source"
+    },
+    {
+      "source": "TestExtractDiff_MarkdownBlock()",
+      "target": "ExtractDiff()",
+      "source_files": [
+        "internal/agent/agent_test.go",
+        "internal/agent/coder.go"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source"
     }
   ],
   "tokens": {
