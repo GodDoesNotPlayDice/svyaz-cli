@@ -3,16 +3,16 @@
     "0": [
       "cmd_chat",
       "cmd_chat_init",
-      "cmd_mcp",
-      "cmd_mcp_init",
       "cmd_run",
       "cmd_run_init",
       "go_pkg_bufio",
+      "go_pkg_bytes",
       "go_pkg_context",
       "go_pkg_encoding_json",
       "go_pkg_fmt",
-      "go_pkg_github_com_charmbracelet_bubbletea",
-      "go_pkg_github_com_spf13_cobra",
+      "go_pkg_github_com_charmbracelet_bubbles_spinner",
+      "go_pkg_github_com_charmbracelet_bubbles_textinput",
+      "go_pkg_github_com_charmbracelet_bubbles_viewport",
       "go_pkg_go_ast",
       "go_pkg_go_parser",
       "go_pkg_go_token",
@@ -27,7 +27,7 @@
       "go_pkg_time",
       "internal_agent_coder",
       "internal_agent_orchestrator",
-      "internal_agent_reviewer",
+      "internal_agent_planner",
       "internal_context_compressor",
       "internal_context_repomap",
       "internal_context_repomap_test",
@@ -36,51 +36,17 @@
       "internal_llm_client_test",
       "internal_llm_live_test",
       "internal_llm_pool",
-      "internal_ui_badge",
+      "internal_llm_pool_test",
       "internal_ui_diffview",
-      "internal_ui_header_test",
-      "internal_ui_styles",
+      "internal_ui_tui",
       "llm_apierror",
       "llm_apierror_error",
-      "main"
+      "ui_coderfinishedmsg",
+      "ui_fallbackeventmsg",
+      "ui_plannerfinishedmsg",
+      "ui_reviewerfinishedmsg"
     ],
     "1": [
-      "diffpatch",
-      "go_pkg_github_com_charmbracelet_bubbles_spinner",
-      "go_pkg_github_com_charmbracelet_bubbles_textinput",
-      "go_pkg_github_com_charmbracelet_bubbles_viewport",
-      "go_type_github_com_charmbracelet_bubbles_spinner_model",
-      "go_type_github_com_charmbracelet_bubbles_textinput_model",
-      "go_type_github_com_charmbracelet_bubbles_viewport_model",
-      "go_type_github_com_charmbracelet_bubbletea_cmd",
-      "go_type_github_com_charmbracelet_bubbletea_model",
-      "go_type_github_com_charmbracelet_bubbletea_msg",
-      "headerinfo",
-      "internal_ui_badge_rendertoolbadge",
-      "internal_ui_diffview_renderdiffview",
-      "internal_ui_header_test_testrenderheaderandfooter",
-      "internal_ui_tui",
-      "internal_ui_tui_newmodel",
-      "internal_ui_tui_renderpromptinput",
-      "ui_actionstatus",
-      "ui_appstate",
-      "ui_coderfinishedmsg",
-      "ui_diffpatch",
-      "ui_fallbackeventmsg",
-      "ui_messageitem",
-      "ui_model",
-      "ui_model_addmessage",
-      "ui_model_init",
-      "ui_model_rendercontent",
-      "ui_model_renderinputarea",
-      "ui_model_update",
-      "ui_model_updateviewportcontent",
-      "ui_model_view",
-      "ui_plannerfinishedmsg",
-      "ui_reviewerfinishedmsg",
-      "ui_toolbadge"
-    ],
-    "2": [
       "go_type_context_context",
       "go_type_net_http_request",
       "internal_llm_types",
@@ -107,6 +73,31 @@
       "llm_toolcall",
       "llm_tooldefinition",
       "llm_toolfunctionspec"
+    ],
+    "2": [
+      "diffpatch",
+      "go_pkg_github_com_charmbracelet_bubbletea",
+      "go_type_github_com_charmbracelet_bubbles_spinner_model",
+      "go_type_github_com_charmbracelet_bubbles_viewport_model",
+      "go_type_github_com_charmbracelet_bubbletea_cmd",
+      "go_type_github_com_charmbracelet_bubbletea_model",
+      "go_type_github_com_charmbracelet_bubbletea_msg",
+      "headerinfo",
+      "internal_ui_diffview_renderdiffview",
+      "internal_ui_header_test",
+      "internal_ui_header_test_testmessagewordwrapping",
+      "internal_ui_header_test_testrenderheaderandfooter",
+      "internal_ui_tui_newmodel",
+      "toolbadge",
+      "ui_appstate",
+      "ui_diffpatch",
+      "ui_messageitem",
+      "ui_model",
+      "ui_model_addmessage",
+      "ui_model_init",
+      "ui_model_rendercontent",
+      "ui_model_update",
+      "ui_model_updateviewportcontent"
     ],
     "3": [
       "agent_coderagent_generatepatch",
@@ -138,7 +129,6 @@
       "agent_revieweragent_apply",
       "agent_revieweragent_dryrun",
       "agent_revieweragent_verify",
-      "go_pkg_bytes",
       "go_pkg_os_exec",
       "harness_patcher",
       "harness_patcher_apply",
@@ -148,6 +138,7 @@
       "harness_verifier_detectprojectcommand",
       "harness_verifier_pruneoutput",
       "harness_verifier_runverification",
+      "internal_agent_reviewer",
       "internal_agent_reviewer_newrevieweragent",
       "internal_agent_types_go_agent_patch",
       "internal_harness_patcher",
@@ -156,6 +147,29 @@
       "ui_verificationdonemsg"
     ],
     "5": [
+      "cmd_mcp",
+      "cmd_mcp_init",
+      "go_pkg_github_com_charmbracelet_lipgloss",
+      "go_pkg_github_com_spf13_cobra",
+      "go_type_github_com_charmbracelet_bubbles_textinput_model",
+      "internal_ui_badge",
+      "internal_ui_badge_rendertoolbadge",
+      "internal_ui_header",
+      "internal_ui_header_getactiveworkdir",
+      "internal_ui_header_renderheader",
+      "internal_ui_statusbar",
+      "internal_ui_statusbar_renderfooter",
+      "internal_ui_statusbar_renderstatusbar",
+      "internal_ui_styles",
+      "internal_ui_tui_renderpromptinput",
+      "ui_actionstatus",
+      "ui_headerinfo",
+      "ui_keyhint",
+      "ui_model_renderinputarea",
+      "ui_model_view",
+      "ui_toolbadge"
+    ],
+    "6": [
       "go_type_sync_rwmutex",
       "go_type_testing_t",
       "go_type_time_duration",
@@ -165,7 +179,6 @@
       "internal_llm_client_test_testclient_streamandfallback",
       "internal_llm_live_test_testlive_freellmapi_connection",
       "internal_llm_pool_newmodelpool",
-      "internal_llm_pool_test",
       "internal_llm_pool_test_testmodelpool_basicorder",
       "internal_llm_pool_test_testmodelpool_circuitbreakeron429",
       "internal_llm_pool_test_testmodelpool_filterrequirestools",
@@ -177,7 +190,7 @@
       "llm_modelpool_reportfailure",
       "llm_modelpool_reportsuccess"
     ],
-    "6": [
+    "7": [
       "agent_coderagent",
       "agent_orchestrator_planandgeneratepatch",
       "agent_orchestrator_processinput",
@@ -191,14 +204,13 @@
       "internal_agent_coder_newcoderagent",
       "internal_agent_orchestrator_go_agent_orchestrator",
       "internal_agent_orchestrator_neworchestrator",
-      "internal_agent_planner",
       "internal_agent_planner_newplanneragent",
       "internal_context_repomap_newrepomap",
       "internal_context_repomap_test_testrepomap_generate",
       "internal_llm_client_go_llm_client",
       "internal_llm_client_go_llm_fallbackevent"
     ],
-    "7": [
+    "8": [
       "cmd_root",
       "cmd_root_execute",
       "cmd_root_init",
@@ -212,18 +224,8 @@
       "internal_config_config",
       "internal_config_config_defaultconfig",
       "internal_config_config_load",
+      "main",
       "main_main"
-    ],
-    "8": [
-      "go_pkg_github_com_charmbracelet_lipgloss",
-      "internal_ui_header",
-      "internal_ui_header_getactiveworkdir",
-      "internal_ui_header_renderheader",
-      "internal_ui_statusbar",
-      "internal_ui_statusbar_renderfooter",
-      "internal_ui_statusbar_renderstatusbar",
-      "ui_headerinfo",
-      "ui_keyhint"
     ],
     "9": [
       "internal_mcp_validator",
@@ -236,24 +238,20 @@
     ],
     "10": [
       "pkg_github_com_xaxa_svyaz_cli"
-    ],
-    "11": [
-      "toolbadge"
     ]
   },
   "cohesion": {
-    "0": 0.13240418118466898,
-    "1": 0.0855614973262032,
-    "2": 0.15384615384615385,
+    "0": 0.1321353065539112,
+    "1": 0.15384615384615385,
+    "2": 0.1225296442687747,
     "3": 0.14285714285714285,
-    "4": 0.1380952380952381,
-    "5": 0.15789473684210525,
-    "6": 0.18128654970760233,
-    "7": 0.23076923076923078,
-    "8": 0.3333333333333333,
+    "4": 0.14761904761904762,
+    "5": 0.1380952380952381,
+    "6": 0.15789473684210525,
+    "7": 0.1895424836601307,
+    "8": 0.21904761904761905,
     "9": 0.47619047619047616,
-    "10": 1.0,
-    "11": 1.0
+    "10": 1.0
   },
   "gods": [
     {
@@ -353,22 +351,22 @@
       "why": "connects across different repos/directories"
     },
     {
-      "source": "TestRenderHeaderAndFooter()",
-      "target": "NewModel()",
+      "source": "ModelPool",
+      "target": "ModelMetadata",
       "source_files": [
-        "internal/ui/header_test.go",
-        "internal/ui/tui.go"
+        "internal/llm/pool.go",
+        "internal/llm/types.go"
       ],
-      "confidence": "INFERRED",
-      "relation": "calls",
-      "why": "inferred connection - not explicitly stated in source"
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "bridges separate communities"
     }
   ],
   "questions": [
     {
       "type": "bridge_node",
-      "question": "Why does `Model` connect `tui.go` to `Patch`, `planner.go`?",
-      "why": "High betweenness centrality (0.123) - this node is a cross-community bridge."
+      "question": "Why does `Model` connect `Model` to `tui.go`, `Patch`, `mcp.go`, `Client`?",
+      "why": "High betweenness centrality (0.126) - this node is a cross-community bridge."
     },
     {
       "type": "isolated_nodes",
@@ -377,23 +375,23 @@
     },
     {
       "type": "low_cohesion",
-      "question": "Should `chat.go` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.13240418118466898 - nodes in this community are weakly interconnected."
+      "question": "Should `tui.go` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.1321353065539112 - nodes in this community are weakly interconnected."
     },
     {
       "type": "bridge_node",
-      "question": "Why does `ModelPool` connect `ModelPool` to `chat.go`, `llm/types.go`, `agent/types.go`, `planner.go`?",
-      "why": "High betweenness centrality (0.085) - this node is a cross-community bridge."
+      "question": "Why does `ModelPool` connect `ModelPool` to `tui.go`, `llm/types.go`, `agent/types.go`, `Client`?",
+      "why": "High betweenness centrality (0.087) - this node is a cross-community bridge."
     },
     {
       "type": "low_cohesion",
-      "question": "Should `tui.go` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.0855614973262032 - nodes in this community are weakly interconnected."
+      "question": "Should `Model` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.1225296442687747 - nodes in this community are weakly interconnected."
     },
     {
       "type": "bridge_node",
-      "question": "Why does `Orchestrator` connect `planner.go` to `chat.go`, `tui.go`, `Patch`?",
-      "why": "High betweenness centrality (0.078) - this node is a cross-community bridge."
+      "question": "Why does `Orchestrator` connect `Client` to `tui.go`, `Model`, `Patch`?",
+      "why": "High betweenness centrality (0.082) - this node is a cross-community bridge."
     },
     {
       "type": "low_cohesion",

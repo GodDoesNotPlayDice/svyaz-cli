@@ -513,26 +513,35 @@ func (m *Model) updateViewportContent() {
 func (m Model) renderContent() string {
 	var b strings.Builder
 
+	wrapWidth := m.width - 4
+	if wrapWidth < 20 {
+		wrapWidth = 76
+	}
+	wrapStyle := lipgloss.NewStyle().Width(wrapWidth)
+
 	for _, msg := range m.messages {
 		switch msg.Role {
 		case "user":
-			b.WriteString(UserPrefixStyle.Render("> ") + UserMessageStyle.Render(msg.Content) + "\n\n")
+			line := UserPrefixStyle.Render("> ") + UserMessageStyle.Render(msg.Content)
+			b.WriteString(wrapStyle.Render(line) + "\n\n")
 		case "agent":
-			b.WriteString(AgentPrefixStyle.Render("svyaz: ") + AgentMessageStyle.Render(msg.Content) + "\n\n")
+			line := AgentPrefixStyle.Render("svyaz: ") + AgentMessageStyle.Render(msg.Content)
+			b.WriteString(wrapStyle.Render(line) + "\n\n")
 		case "tool":
 			if msg.Badge != nil {
-				b.WriteString(RenderToolBadge(*msg.Badge) + "\n\n")
+				badgeStr := RenderToolBadge(*msg.Badge)
+				b.WriteString(wrapStyle.Render(badgeStr) + "\n\n")
 			}
 		case "diff":
 			if msg.Patch != nil {
-				b.WriteString(RenderDiffView(*msg.Patch, m.width) + "\n\n")
+				b.WriteString(RenderDiffView(*msg.Patch, wrapWidth) + "\n\n")
 			}
 		}
 	}
 
 	if m.state != StateIdle && m.state != StateConfirmPatch {
 		sp := m.spinner.View() + " " + ActionTextStyle.Render(m.spinnerText)
-		b.WriteString("  " + sp + "\n\n")
+		b.WriteString(wrapStyle.Render("  "+sp) + "\n\n")
 	}
 
 	return b.String()
