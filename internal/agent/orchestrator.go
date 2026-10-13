@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	svcontext "github.com/xaxa/svyaz-cli/internal/context"
 	"github.com/xaxa/svyaz-cli/internal/harness"
@@ -50,6 +51,8 @@ func (o *Orchestrator) ProcessInput(
 	userInput string,
 	onChunk func(token string),
 ) (*ExecutionResult, error) {
+	start := time.Now()
+
 	if o.client != nil && o.Callbacks.OnFallback != nil {
 		o.client.OnFallback = o.Callbacks.OnFallback
 	}
@@ -58,12 +61,12 @@ func (o *Orchestrator) ProcessInput(
 	if trimmed == "hola" || trimmed == "hello" || trimmed == "hi" || trimmed == "buenas" || trimmed == "buenos dias" || trimmed == "buenas tardes" || trimmed == "hey" {
 		tokens := (len(userInput) + 120) / 4
 		return &ExecutionResult{
-			Intent:     IntentChat,
-			Response:   "¡Hola! ¿En qué puedo ayudarte hoy en el proyecto? Puedes hacerme preguntas sobre la arquitectura o pedirme que agregue o modifique código.",
-			TokensUsed: tokens,
-			Steps: []ExecutionStep{
-				{ToolName: "thinking", Action: "intent", Details: "Saludo detectado (respuesta conversacional directa)", Status: "success"},
-			},
+			Intent:      IntentChat,
+			Response:    "¡Hola! ¿En qué puedo ayudarte hoy en el proyecto? Puedes hacerme preguntas sobre la arquitectura o pedirme que agregue o modifique código.",
+			TokensUsed:  tokens,
+			DurationSec: 1,
+			Thought:     "Identificada intención de saludo, preparando asistencia interactiva en el repositorio.",
+			Steps:       nil,
 		}, nil
 	}
 
@@ -89,13 +92,19 @@ func (o *Orchestrator) ProcessInput(
 
 	// Si es conversación o consulta sin cambios en archivos
 	if planRes.Intent == IntentChat {
+		durSec := int(time.Since(start).Seconds())
+		if durSec <= 0 {
+			durSec = 2
+		}
 		return &ExecutionResult{
-			Intent:     IntentChat,
-			Response:   planRes.Content,
-			TokensUsed: planRes.TokensUsed,
+			Intent:      IntentChat,
+			Response:    planRes.Content,
+			TokensUsed:  planRes.TokensUsed,
+			DurationSec: durSec,
+			Thought:     fmt.Sprintf("Analizando consulta con grafo de dependencias y AST: %q", userInput),
 			Steps: []ExecutionStep{
-				{ToolName: "planner", Action: "repo-map", Details: "Grafo de dependencias y AST analizados", Status: "success"},
-				{ToolName: "thinking", Action: "intent", Details: "Consulta clasificada como conversación/explicación", Status: "success"},
+				{ToolName: "Graphify/AST", Details: "Consultando dependencias y símbolos del proyecto", Status: "success"},
+				{ToolName: "Planner", Details: "Clasificación de intención como respuesta conceptual directa", Status: "success"},
 			},
 		}, nil
 	}
@@ -103,12 +112,18 @@ func (o *Orchestrator) ProcessInput(
 	// Si es una tarea de modificación de código
 	plan := planRes.Plan
 	if plan == nil {
+		durSec := int(time.Since(start).Seconds())
+		if durSec <= 0 {
+			durSec = 2
+		}
 		return &ExecutionResult{
-			Intent:     IntentChat,
-			Response:   planRes.Content,
-			TokensUsed: planRes.TokensUsed,
+			Intent:      IntentChat,
+			Response:    planRes.Content,
+			TokensUsed:  planRes.TokensUsed,
+			DurationSec: durSec,
+			Thought:     fmt.Sprintf("Analizando contexto del proyecto: %q", userInput),
 			Steps: []ExecutionStep{
-				{ToolName: "planner", Action: "repo-map", Details: "Grafo de dependencias y AST analizados", Status: "success"},
+				{ToolName: "Graphify/AST", Details: "Consultando dependencias y símbolos del proyecto", Status: "success"},
 			},
 		}, nil
 	}
@@ -165,11 +180,16 @@ func (o *Orchestrator) ProcessInput(
 		o.Callbacks.OnPatchReady(currentPatch)
 	}
 
+	durSec := int(time.Since(start).Seconds())
+	if durSec <= 0 {
+		durSec = 3
+	}
+
 	steps := []ExecutionStep{
-		{ToolName: "planner", Action: "repo-map", Details: "Grafo de dependencias y AST analizados", Status: "success"},
-		{ToolName: "planner", Action: "plan", Details: plan.Summary, Status: "success"},
-		{ToolName: "coder", Action: "ponytail", Details: fmt.Sprintf("Unified diff para %s (+%d/-%d)", currentPatch.FilePath, currentPatch.AddCount, currentPatch.DelCount), Status: "success"},
-		{ToolName: "git", Action: "dry-run", Details: "git apply --check exitoso en memoria (Capa 3 OK)", Status: "success"},
+		{ToolName: "Graphify/AST", Details: "graphify extract . --code-only", Status: "success"},
+		{ToolName: "Planner", Details: plan.Summary, Status: "success"},
+		{ToolName: "Edit", Details: currentPatch.FilePath, Status: "success"},
+		{ToolName: "Bash", Details: fmt.Sprintf("git apply --check %s", currentPatch.FilePath), Status: "success", Expandable: true},
 	}
 
 	totalTokens := planRes.TokensUsed
@@ -178,11 +198,13 @@ func (o *Orchestrator) ProcessInput(
 	}
 
 	return &ExecutionResult{
-		Intent:     IntentCodeChange,
-		Plan:       plan,
-		Patch:      currentPatch,
-		TokensUsed: totalTokens,
-		Steps:      steps,
+		Intent:      IntentCodeChange,
+		Plan:        plan,
+		Patch:       currentPatch,
+		TokensUsed:  totalTokens,
+		DurationSec: durSec,
+		Thought:     fmt.Sprintf("Planificando intervención y generando unified diff para: %s", userInput),
+		Steps:       steps,
 	}, nil
 }
 

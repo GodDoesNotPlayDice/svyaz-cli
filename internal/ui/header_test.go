@@ -112,15 +112,17 @@ func TestUIRefinements_VerbosityAndTokensPreserved(t *testing.T) {
 	res, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 30})
 	m = res.(Model)
 
-	// Dispatch taskResultMsg with steps and tokens
+	// Dispatch taskResultMsg with steps and tokens in Antigravity style
 	res, _ = m.Update(taskResultMsg{
 		Result: &agent.ExecutionResult{
-			Intent:     agent.IntentChat,
-			Response:   "Todo funcionando perfectamente.",
-			TokensUsed: 250,
+			Intent:      agent.IntentChat,
+			Response:    "Todo funcionando perfectamente.",
+			TokensUsed:  250,
+			DurationSec: 3,
+			Thought:     "Clasificando intención de consulta...",
 			Steps: []agent.ExecutionStep{
-				{ToolName: "planner", Action: "repo-map", Details: "AST y dependencias analizadas", Status: "success"},
-				{ToolName: "thinking", Action: "intent", Details: "Consulta clasificada como conversación", Status: "success"},
+				{ToolName: "Planner", Action: "repo-map", Details: "AST y dependencias analizadas", Status: "success"},
+				{ToolName: "Bash", Action: "test", Details: "go test -v ./...", Status: "success"},
 			},
 		},
 	})
@@ -133,17 +135,17 @@ func TestUIRefinements_VerbosityAndTokensPreserved(t *testing.T) {
 		t.Errorf("expected header banner at top")
 	}
 
-	// 2. Verbosity steps remain
-	if !strings.Contains(view, "[planner:repo-map]") {
-		t.Errorf("expected planner step badge to persist")
+	// 2. Verbosity steps remain in Antigravity ● Tool(Details) format
+	if !strings.Contains(view, "●") || !strings.Contains(view, "Planner(AST y dependencias analizadas)") {
+		t.Errorf("expected Planner step to persist in Antigravity format, got:\n%s", view)
 	}
-	if !strings.Contains(view, "[thinking:intent]") {
-		t.Errorf("expected thinking intent badge to persist")
+	if !strings.Contains(view, "Bash(go test -v ./...)") {
+		t.Errorf("expected Bash step to persist in Antigravity format, got:\n%s", view)
 	}
 
-	// 3. Tokens consumed badge is visible
-	if !strings.Contains(view, "[tokens:usage]") || !strings.Contains(view, "250 tokens consumidos") {
-		t.Errorf("expected tokens consumed badge to be visible")
+	// 3. Tokens consumed and duration are visible in Antigravity ▸ Thought header
+	if !strings.Contains(view, "Thought for 3s, 250 tokens") {
+		t.Errorf("expected thought header with duration and tokens, got:\n%s", view)
 	}
 
 	// 4. Agent response is indented and has no svyaz: prefix
@@ -152,6 +154,105 @@ func TestUIRefinements_VerbosityAndTokensPreserved(t *testing.T) {
 	}
 	if !strings.Contains(view, "Todo funcionando perfectamente.") {
 		t.Errorf("expected agent response text to be present")
+	}
+}
+
+func TestAntigravityVerbosityAndThoughts(t *testing.T) {
+	info := HeaderInfo{
+		Version:      "v1.0.0",
+		WorkDir:      "/home/xaxa/Documents/Github/svyaz-cli",
+		CurrentModel: "deepseek-coder",
+	}
+
+	m := NewModel(info)
+	res, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 30})
+	m = res.(Model)
+
+	// Add thought followed by multiple compactly stacked tool steps
+	m.addMessage(MessageItem{
+		Role: "thought",
+		Thought: &ThoughtInfo{
+			Duration: "9s",
+			Tokens:   195,
+			Summary:  "Examining the terminal output. The `/h_` command suggests a help function...",
+		},
+	})
+	m.addMessage(MessageItem{
+		Role: "tool",
+		Badge: &ToolBadge{
+			ToolName: "Edit",
+			Details:  "~/Documents/Github/svyaz-cli/internal/ui/header_test.go",
+			Status:   ActionSuccess,
+		},
+	})
+	m.addMessage(MessageItem{
+		Role: "tool",
+		Badge: &ToolBadge{
+			ToolName:   "Bash",
+			Details:    "go test -v -run TestSlashCommandAutocomplete ./internal/ui/...",
+			Status:     ActionSuccess,
+			Expandable: true,
+		},
+	})
+	m.addMessage(MessageItem{
+		Role: "tool",
+		Badge: &ToolBadge{
+			ToolName: "engram/mem_save",
+			Details:  "Save slash command autocomplete decision",
+			Status:   ActionSuccess,
+		},
+	})
+
+	content := m.renderContent()
+
+	// Check thought format
+	if !strings.Contains(content, "▸") || !strings.Contains(content, "Thought") || !strings.Contains(content, "for 9s, 195 tokens") {
+		t.Errorf("expected thought format ▸ Thought for 9s, 195 tokens, got:\n%s", content)
+	}
+	if !strings.Contains(content, "Examining the terminal output.") {
+		t.Errorf("expected thought summary, got:\n%s", content)
+	}
+
+	// Check tool format
+	if !strings.Contains(content, "●") || !strings.Contains(content, "Edit(~/Documents/Github/svyaz-cli/internal/ui/header_test.go)") {
+		t.Errorf("expected Edit tool format, got:\n%s", content)
+	}
+	if !strings.Contains(content, "Bash(go test -v -run TestSlashCommandAutocomplete ./internal/ui/...)") || !strings.Contains(content, "(ctrl+o to expand)") {
+		t.Errorf("expected Bash tool format with ctrl+o, got:\n%s", content)
+	}
+	if !strings.Contains(content, "engram/mem_save(Save slash command autocomplete decision)") {
+		t.Errorf("expected engram tool format, got:\n%s", content)
+	}
+
+	// Check compact stacking: consecutive tool steps should have no blank lines separating them
+	lines := strings.Split(content, "\n")
+	foundEdit := -1
+	foundBash := -1
+	foundEngram := -1
+	for idx, l := range lines {
+		if strings.Contains(l, "Edit") && foundEdit == -1 {
+			foundEdit = idx
+		}
+		if strings.Contains(l, "Bash") && foundBash == -1 {
+			foundBash = idx
+		}
+		if strings.Contains(l, "engram/mem_save") && foundEngram == -1 {
+			foundEngram = idx
+		}
+	}
+
+	if foundEdit == -1 || foundBash == -1 || foundEngram == -1 {
+		t.Fatalf("could not find all tool lines in:\n%s", content)
+	}
+
+	if !(foundEdit < foundBash && foundBash < foundEngram) {
+		t.Fatalf("expected order edit < bash < engram, got edit=%d bash=%d engram=%d", foundEdit, foundBash, foundEngram)
+	}
+
+	for j := foundEdit; j <= foundEngram; j++ {
+		if strings.TrimSpace(lines[j]) == "" {
+			t.Errorf("expected no blank lines between consecutively stacked tools, but line %d was blank", j)
+		}
 	}
 }
 

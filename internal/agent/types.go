@@ -71,10 +71,11 @@ const (
 
 // ExecutionStep represents a discrete step performed during agent orchestration
 type ExecutionStep struct {
-	ToolName string
-	Action   string
-	Details  string
-	Status   string
+	ToolName   string
+	Action     string
+	Details    string
+	Status     string
+	Expandable bool
 }
 
 // PlannerResult represents the output from PlannerAgent
@@ -87,11 +88,13 @@ type PlannerResult struct {
 
 // ExecutionResult represents the complete output from Orchestrator.ProcessInput
 type ExecutionResult struct {
-	Intent     IntentType
-	Response   string
-	Plan       *Plan
-	Patch      *Patch
-	TokensUsed int
-	Steps      []ExecutionStep
+	Intent      IntentType
+	Response    string
+	Plan        *Plan
+	Patch       *Patch
+	TokensUsed  int
+	DurationSec int
+	Thought     string
+	Steps       []ExecutionStep
 }
 

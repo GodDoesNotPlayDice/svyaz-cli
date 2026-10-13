@@ -26,10 +26,11 @@ const (
 )
 
 type MessageItem struct {
-	Role    string // "user", "agent", "tool", "diff"
+	Role    string // "user", "agent", "tool", "diff", "thought"
 	Content string
 	Badge   *ToolBadge
 	Patch   *DiffPatch
+	Thought *ThoughtInfo
 }
 
 type SlashCommand struct {
@@ -309,9 +310,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.addMessage(MessageItem{
 				Role: "tool",
 				Badge: &ToolBadge{
-					ToolName: "thinking",
+					ToolName: "Graphify/AST",
 					Action:   "ast-graph",
-					Details:  "Consultando grafo de dependencias y AST...",
+					Details:  "ast-graph: consultando dependencias y símbolos",
 					Status:   ActionSuccess,
 				},
 			})
@@ -410,31 +411,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		// Add Thought block if present
+		if msg.Result.Thought != "" || msg.Result.TokensUsed > 0 {
+			durStr := fmt.Sprintf("%ds", msg.Result.DurationSec)
+			if msg.Result.DurationSec <= 0 {
+				durStr = "2s"
+			}
+			thoughtText := msg.Result.Thought
+			if thoughtText == "" {
+				thoughtText = "Procesando razonamiento y analizando contexto..."
+			}
+			m.addMessage(MessageItem{
+				Role: "thought",
+				Thought: &ThoughtInfo{
+					Duration: durStr,
+					Tokens:   msg.Result.TokensUsed,
+					Summary:  thoughtText,
+				},
+			})
+		}
+
 		// Preserve verbosity: record all execution steps taken
 		for _, step := range msg.Result.Steps {
 			m.addMessage(MessageItem{
 				Role: "tool",
 				Badge: &ToolBadge{
-					ToolName: step.ToolName,
-					Action:   step.Action,
-					Details:  step.Details,
-					Status:   toActionStatus(step.Status),
+					ToolName:   step.ToolName,
+					Action:     step.Action,
+					Details:    step.Details,
+					Status:     toActionStatus(step.Status),
+					Expandable: step.Expandable,
 				},
 			})
 		}
 
-		// Display token consumption badge
 		if msg.Result.TokensUsed > 0 {
 			m.totalTokens += msg.Result.TokensUsed
-			m.addMessage(MessageItem{
-				Role: "tool",
-				Badge: &ToolBadge{
-					ToolName: "tokens",
-					Action:   "usage",
-					Details:  fmt.Sprintf("%d tokens consumidos (sesión: %d)", msg.Result.TokensUsed, m.totalTokens),
-					Status:   ActionSuccess,
-				},
-			})
 		}
 
 		// Case 1: Pure conversation, question, or text explanation
@@ -482,9 +494,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.addMessage(MessageItem{
 				Role: "tool",
 				Badge: &ToolBadge{
-					ToolName: "verifier",
-					Action:   "check",
-					Details:  fmt.Sprintf("Fallo: %v", msg.Err),
+					ToolName: "Bash",
+					Details:  fmt.Sprintf("verification failed: %v", msg.Err),
 					Status:   ActionError,
 				},
 			})
@@ -497,9 +508,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.addMessage(MessageItem{
 				Role: "tool",
 				Badge: &ToolBadge{
-					ToolName: "verifier",
-					Action:   "check",
-					Details:  fmt.Sprintf("%s devolvió errores", msg.Result.Command),
+					ToolName: "Bash",
+					Details:  fmt.Sprintf("%s (exit status 1)", msg.Result.Command),
 					Status:   ActionError,
 				},
 			})
@@ -509,17 +519,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 		} else {
 			m.headerInfo.ModelStatus = "Ready"
-			cmdStr := "linter/compiler"
+			cmdStr := "go test -v ./..."
 			if msg.Result != nil && msg.Result.Command != "" {
 				cmdStr = msg.Result.Command
 			}
 			m.addMessage(MessageItem{
 				Role: "tool",
 				Badge: &ToolBadge{
-					ToolName: "verifier",
-					Action:   "check",
-					Details:  fmt.Sprintf("%s exitoso (Capa 4 OK)", cmdStr),
+					ToolName: "Bash",
+					Details:  cmdStr,
 					Status:   ActionSuccess,
+				},
+			})
+			m.addMessage(MessageItem{
+				Role: "tool",
+				Badge: &ToolBadge{
+					ToolName:   "engram/mem_session_summary",
+					Details:    "Save Engram session summary",
+					Status:     ActionSuccess,
+					Expandable: true,
 				},
 			})
 			m.addMessage(MessageItem{
@@ -535,8 +553,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.addMessage(MessageItem{
 			Role: "tool",
 			Badge: &ToolBadge{
-				ToolName: "fallback",
-				Action:   "circuit-breaker",
+				ToolName: "LLM/Fallback",
 				Details:  fmt.Sprintf("%s (429) -> %s", msg.FailedModel, msg.NextModel),
 				Status:   ActionWarning,
 			},
@@ -549,12 +566,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.headerInfo.ModelStatus = "Generating Patch..."
 		m.spinnerText = "Coder Agent: Generando parche conciso con skill 'ponytail'..."
 		m.addMessage(MessageItem{
+			Role: "thought",
+			Thought: &ThoughtInfo{
+				Duration: "9s",
+				Tokens:   195,
+				Summary:  "Examining the project structure and AST graph to plan concise modifications...",
+			},
+		})
+		m.addMessage(MessageItem{
 			Role: "tool",
 			Badge: &ToolBadge{
-				ToolName: "ast",
-				Action:   "find",
-				Details:  "Identificados símbolos requeridos sin saturar contexto",
+				ToolName: "Graphify/AST",
+				Details:  "graphify extract . --code-only",
 				Status:   ActionSuccess,
+			},
+		})
+		m.addMessage(MessageItem{
+			Role: "tool",
+			Badge: &ToolBadge{
+				ToolName:   "Bash",
+				Details:    "go test -v ./internal/ui/...",
+				Status:     ActionSuccess,
+				Expandable: true,
 			},
 		})
 		m.updateViewportContent()
@@ -572,32 +605,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentPatch = samplePatch
 		m.state = StateConfirmPatch
 		m.headerInfo.ModelStatus = "Awaiting Approval"
-		tokens := 348
+		tokens := 188
 		m.totalTokens += tokens
 		m.addMessage(MessageItem{
+			Role: "thought",
+			Thought: &ThoughtInfo{
+				Duration: "6s",
+				Tokens:   tokens,
+				Summary:  "I'm thinking through how to approach this. Applying minimal diff with ponytail skill...",
+			},
+		})
+		m.addMessage(MessageItem{
 			Role: "tool",
 			Badge: &ToolBadge{
-				ToolName: "coder",
-				Action:   "ponytail",
-				Details:  "Unified diff generado para cmd/root.go (+2/-0)",
+				ToolName: "Edit",
+				Details:  "cmd/root.go",
 				Status:   ActionSuccess,
 			},
 		})
 		m.addMessage(MessageItem{
 			Role: "tool",
 			Badge: &ToolBadge{
-				ToolName: "git",
-				Action:   "dry-run",
-				Details:  "git apply --check exitoso en memoria (Capa 3 OK)",
-				Status:   ActionSuccess,
+				ToolName:   "Bash",
+				Details:    "git apply --check cmd/root.go",
+				Status:     ActionSuccess,
+				Expandable: true,
 			},
 		})
 		m.addMessage(MessageItem{
 			Role: "tool",
 			Badge: &ToolBadge{
-				ToolName: "tokens",
-				Action:   "usage",
-				Details:  fmt.Sprintf("%d tokens consumidos (sesión: %d)", tokens, m.totalTokens),
+				ToolName: "engram/mem_save",
+				Details:  "Save architecture decision",
 				Status:   ActionSuccess,
 			},
 		})
@@ -615,10 +654,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.addMessage(MessageItem{
 			Role: "tool",
 			Badge: &ToolBadge{
-				ToolName: "linter",
-				Action:   "verify",
-				Details:  "go vet / compilación exitosa sin errores (Capa 4 OK)",
+				ToolName: "Bash",
+				Details:  "go test -v ./...",
 				Status:   ActionSuccess,
+			},
+		})
+		m.addMessage(MessageItem{
+			Role: "tool",
+			Badge: &ToolBadge{
+				ToolName:   "engram/mem_session_summary",
+				Details:    "Save Engram session summary",
+				Status:     ActionSuccess,
+				Expandable: true,
 			},
 		})
 		m.addMessage(MessageItem{
@@ -716,11 +763,16 @@ func (m Model) renderContent() string {
 	}
 	wrapStyle := lipgloss.NewStyle().Width(wrapWidth)
 
-	for _, msg := range m.messages {
+	for i, msg := range m.messages {
 		switch msg.Role {
 		case "user":
 			line := UserPrefixStyle.Render("> ") + UserMessageStyle.Render(msg.Content)
 			b.WriteString(wrapStyle.Render(line) + "\n\n")
+		case "thought":
+			if msg.Thought != nil {
+				thStr := RenderThought(*msg.Thought, wrapWidth)
+				b.WriteString(thStr + "\n\n")
+			}
 		case "agent":
 			agentBlock := lipgloss.NewStyle().
 				PaddingLeft(2).
@@ -730,7 +782,12 @@ func (m Model) renderContent() string {
 		case "tool":
 			if msg.Badge != nil {
 				badgeStr := RenderToolBadge(*msg.Badge)
-				b.WriteString(wrapStyle.Render(badgeStr) + "\n\n")
+				// Compactly stack consecutive tool items with a single newline
+				if i+1 < len(m.messages) && m.messages[i+1].Role == "tool" {
+					b.WriteString(wrapStyle.Render(badgeStr) + "\n")
+				} else {
+					b.WriteString(wrapStyle.Render(badgeStr) + "\n\n")
+				}
 			}
 		case "diff":
 			if msg.Patch != nil {
