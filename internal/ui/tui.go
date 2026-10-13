@@ -44,11 +44,10 @@ type Model struct {
 
 func NewModel(info HeaderInfo) Model {
 	ti := textinput.New()
-	ti.Placeholder = "Describe tu tarea o haz una pregunta (/help para comandos)..."
-	ti.Prompt = PromptPromptStyle.Render("❯ ")
+	ti.Prompt = PromptPromptStyle.Render("> ")
 	ti.PromptStyle = PromptPromptStyle
-	ti.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(ColorTextPrimary))
-	ti.PlaceholderStyle = PromptPlaceholderStyle
+	ti.TextStyle = PromptInputTextStyle
+	ti.Placeholder = ""
 	ti.Focus()
 	ti.CharLimit = 1000
 
@@ -56,18 +55,17 @@ func NewModel(info HeaderInfo) Model {
 	sp.Spinner = spinner.MiniDot
 	sp.Style = lipgloss.NewStyle().Foreground(lipgloss.Color(ColorAccentBlue))
 
+	if info.ModelStatus == "" {
+		info.ModelStatus = "Ready"
+	}
+
 	return Model{
 		state:       StateIdle,
 		headerInfo:  info,
 		input:       ti,
 		spinner:     sp,
 		spinnerText: "Analizando proyecto con Graphify y AST...",
-		messages: []MessageItem{
-			{
-				Role:    "agent",
-				Content: "svyaz inicializado con arnés determinista de 4 capas y optimización FreeLLMAPI.\nEscribe tu requerimiento para comenzar.",
-			},
-		},
+		messages:    []MessageItem{}, // Descartando todo panel de avisos intermedio
 	}
 }
 
@@ -91,6 +89,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == StateConfirmPatch {
 				m.state = StateIdle
 				m.currentPatch = nil
+				m.headerInfo.ModelStatus = "Ready"
 				m.addMessage(MessageItem{
 					Role:    "agent",
 					Content: "Parche cancelado.",
@@ -120,14 +119,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			if val == "/help" {
+			if val == "?" || val == "/help" {
 				m.addMessage(MessageItem{
 					Role: "agent",
-					Content: "Comandos disponibles:\n" +
-						"  /help     - Muestra esta lista de comandos\n" +
-						"  /clear    - Limpia el historial de la pantalla\n" +
-						"  /status   - Muestra el estado del arnés y MCPs\n" +
-						"  /quit     - Salir de svyaz-cli",
+					Content: "Atajos y comandos disponibles:\n" +
+						"  ? o /help - Mostrar comandos disponibles\n" +
+						"  /clear    - Limpiar historial de la pantalla\n" +
+						"  /status   - Estado del arnés y MCPs\n" +
+						"  /quit     - Salir de svyaz-cli\n" +
+						"  Esc       - Cancelar acción o limpiar entrada",
 				})
 				m.input.SetValue("")
 				m.updateViewportContent()
@@ -139,10 +139,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					Role: "agent",
 					Content: fmt.Sprintf("Estado del sistema:\n"+
 						"  Modelo activo: %s\n"+
-						"  Tokens usados: %d / %d\n"+
+						"  Directorio: %s\n"+
 						"  Arnés: 4 Capas Activas (Grounding, MCP Gate, Dry-Run, Linter Loop)\n"+
 						"  Skills: ponytail, ast-navigator",
-						m.headerInfo.CurrentModel, m.headerInfo.TokensUsed, m.headerInfo.TokenLimit),
+						m.headerInfo.CurrentModel, m.headerInfo.WorkDir),
 				})
 				m.input.SetValue("")
 				m.updateViewportContent()
@@ -158,12 +158,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Start simulated Planner/Coder pipeline demo
 			m.state = StatePlanning
+			m.headerInfo.ModelStatus = "Thinking..."
 			m.spinnerText = "Planner Agent: Consultando grafo de dependencias y AST..."
 			m.updateViewportContent()
 
 			return m, tea.Batch(
 				m.spinner.Tick,
-				// Simulate planning response
 				func() tea.Msg {
 					return plannerFinishedMsg{}
 				},
@@ -175,6 +175,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "y", "Y":
 				m.state = StateReviewing
+				m.headerInfo.ModelStatus = "Verifying..."
 				m.spinnerText = "Reviewer Agent: Ejecutando verificación determinista local..."
 				m.addMessage(MessageItem{
 					Role:    "agent",
@@ -186,6 +187,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			case "d", "D", "n", "N":
 				m.state = StateIdle
+				m.headerInfo.ModelStatus = "Ready"
 				m.currentPatch = nil
 				m.addMessage(MessageItem{
 					Role:    "agent",
@@ -198,6 +200,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case plannerFinishedMsg:
 		m.state = StateCoding
+		m.headerInfo.ModelStatus = "Generating Patch..."
 		m.spinnerText = "Coder Agent: Generando parche conciso con skill 'ponytail'..."
 		m.addMessage(MessageItem{
 			Role: "tool",
@@ -222,6 +225,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.currentPatch = samplePatch
 		m.state = StateConfirmPatch
+		m.headerInfo.ModelStatus = "Awaiting Approval"
 		m.addMessage(MessageItem{
 			Role: "tool",
 			Badge: &ToolBadge{
@@ -240,6 +244,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case reviewerFinishedMsg:
 		m.state = StateIdle
+		m.headerInfo.ModelStatus = "Ready"
 		m.currentPatch = nil
 		m.addMessage(MessageItem{
 			Role: "tool",
@@ -264,20 +269,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		headerHeight := 2
-		inputHeight := 3
-		statusBarHeight := 2
-		vpHeight := msg.Height - headerHeight - inputHeight - statusBarHeight
-		if vpHeight < 5 {
-			vpHeight = 5
+		headerHeight := 8    // logo (5) + padding + separator
+		promptHeight := 2    // prompt input
+		footerHeight := 1    // status bar
+		vpHeight := msg.Height - headerHeight - promptHeight - footerHeight
+		if vpHeight < 4 {
+			vpHeight = 4
 		}
 
 		if !m.ready {
-			m.viewport = viewport.New(msg.Width, vpHeight)
+			m.viewport = viewport.New(msg.Width-4, vpHeight)
 			m.viewport.SetContent(m.renderContent())
 			m.ready = true
 		} else {
-			m.viewport.Width = msg.Width
+			m.viewport.Width = msg.Width - 4
 			m.viewport.Height = vpHeight
 			m.updateViewportContent()
 		}
@@ -311,7 +316,7 @@ func (m Model) renderContent() string {
 	for _, msg := range m.messages {
 		switch msg.Role {
 		case "user":
-			b.WriteString(UserPrefixStyle.Render("❯ ") + UserMessageStyle.Render(msg.Content) + "\n\n")
+			b.WriteString(UserPrefixStyle.Render("> ") + UserMessageStyle.Render(msg.Content) + "\n\n")
 		case "agent":
 			b.WriteString(AgentPrefixStyle.Render("svyaz: ") + AgentMessageStyle.Render(msg.Content) + "\n\n")
 		case "tool":
@@ -339,31 +344,33 @@ func (m Model) View() string {
 	}
 
 	header := RenderHeader(m.headerInfo, m.width)
-	vp := m.viewport.View()
-	prompt := PromptContainerStyle.Width(m.width - 2).Render(m.input.View())
+	footer := RenderFooter(m.headerInfo.ModelStatus, m.width)
+	prompt := lipgloss.NewStyle().PaddingLeft(2).Render(m.input.View())
 
-	var hints []KeyHint
-	if m.state == StateConfirmPatch {
-		hints = []KeyHint{
-			{Key: "y", Desc: "aplicar"},
-			{Key: "d", Desc: "descartar"},
-			{Key: "Esc", Desc: "cancelar"},
+	// If there are no messages yet: immediate descent to separator and prompt
+	if len(m.messages) == 0 && m.state == StateIdle {
+		body := lipgloss.JoinVertical(
+			lipgloss.Left,
+			header,
+			"",
+			prompt,
+		)
+		usedLines := lipgloss.Height(body)
+		remaining := m.height - usedLines - lipgloss.Height(footer)
+		if remaining < 0 {
+			remaining = 0
 		}
-	} else {
-		hints = []KeyHint{
-			{Key: "Enter", Desc: "enviar"},
-			{Key: "Esc", Desc: "limpiar"},
-			{Key: "/help", Desc: "comandos"},
-			{Key: "Ctrl+C", Desc: "salir"},
-		}
+		return body + strings.Repeat("\n", remaining) + footer
 	}
-	statusBar := RenderStatusBar(hints, m.width)
+
+	// When messages exist, display viewport between header and prompt
+	vpContent := lipgloss.NewStyle().Padding(0, 2).Render(m.viewport.View())
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		header,
-		vp,
+		vpContent,
 		prompt,
-		statusBar,
+		footer,
 	)
 }

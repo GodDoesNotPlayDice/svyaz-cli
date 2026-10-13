@@ -23,7 +23,7 @@ var mcpListCmd = &cobra.Command{
 		}
 
 		for name, srv := range cfg.MCPServers {
-			fmt.Printf("  • %s: %s %v\n", ui.HeaderAccentValueStyle.Render(name), srv.Command, srv.Args)
+			fmt.Printf("  • %s: %s %v\n", ui.MetaModelStyle.Render(name), srv.Command, srv.Args)
 		}
 	},
 }

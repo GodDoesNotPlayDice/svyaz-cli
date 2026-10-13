@@ -11,17 +11,45 @@ const (
 	ColorBorder       = "#27272A" // Zinc 800
 	ColorBorderActive = "#3F3F46" // Zinc 700
 
-	ColorAccentBlue  = "#38BDF8" // Sky 400 (Sober brand accent)
-	ColorAccentCyan  = "#06B6D4" // Cyan 500
-	ColorSuccess     = "#22C55E" // Emerald 500
-	ColorWarning     = "#EAB308" // Amber 500
-	ColorDanger      = "#EF4444" // Red 500
-	ColorDiffAddBg   = "#052e16" // Dark green background for diffs
-	ColorDiffDelBg   = "#450a0a" // Dark red background for diffs
+	ColorAccentBlue = "#38BDF8" // Sky 400 (Sober brand accent)
+	ColorAccentCyan = "#06B6D4" // Cyan 500
+	ColorSuccess    = "#22C55E" // Emerald 500
+	ColorWarning    = "#EAB308" // Amber 500
+	ColorDanger     = "#EF4444" // Red 500
+	ColorDiffAddBg  = "#052e16" // Dark green background for diffs
+	ColorDiffDelBg  = "#450a0a" // Dark red background for diffs
 )
 
 // UI Styles
 var (
+	// Antigravity-style Logo & Metadata
+	LogoChainStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(ColorAccentBlue))
+
+	LogoTextStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color(ColorAccentBlue))
+
+	MetaTitleStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color(ColorTextPrimary))
+
+	MetaVersionStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorTextDim))
+
+	MetaLabelStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(ColorTextMuted))
+
+	MetaModelStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color(ColorAccentBlue))
+
+	MetaPathStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(ColorTextDim))
+
+	SeparatorLineStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorBorder))
+
 	// Brand and Title
 	BrandStyle = lipgloss.NewStyle().
 			Bold(true).
@@ -30,54 +58,29 @@ var (
 	VersionStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color(ColorTextDim))
 
-	// Header Styles
-	HeaderContainerStyle = lipgloss.NewStyle().
-				Padding(0, 1).
-				Border(lipgloss.NormalBorder(), false, false, true, false).
-				BorderForeground(lipgloss.Color(ColorBorder))
-
-	HeaderItemStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorTextMuted))
-
-	HeaderItemValueStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color(ColorTextPrimary))
-
-	HeaderAccentValueStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color(ColorAccentBlue))
-
-	HeaderSeparatorStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color(ColorBorderActive)).
-				SetString(" │ ")
-
-	// Prompt Box Styles
-	PromptContainerStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color(ColorBorderActive)).
-				Padding(0, 1)
-
+	// Prompt Styles
 	PromptPromptStyle = lipgloss.NewStyle().
 				Bold(true).
 				Foreground(lipgloss.Color(ColorAccentBlue))
 
+	PromptInputTextStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorTextPrimary))
+
 	PromptPlaceholderStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color(ColorTextDim))
 
-	// Status Bar Styles
-	StatusBarContainerStyle = lipgloss.NewStyle().
-				Padding(0, 1).
-				Border(lipgloss.NormalBorder(), true, false, false, false).
-				BorderForeground(lipgloss.Color(ColorBorder))
+	// Status Bar / Footer Styles
+	FooterContainerStyle = lipgloss.NewStyle().
+				Padding(0, 2)
 
-	StatusBarKeyStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(lipgloss.Color(ColorTextPrimary))
+	FooterHintStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(ColorTextDim))
 
-	StatusBarDescStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color(ColorTextDim))
+	FooterStatusStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorTextMuted))
 
-	StatusBarDotStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color(ColorBorderActive)).
-				SetString("  •  ")
+	FooterDotReadyStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorSuccess))
 
 	// Message / Chat History Styles
 	UserMessageStyle = lipgloss.NewStyle().

@@ -13,12 +13,10 @@ var chatCmd = &cobra.Command{
 	Short: "Inicia la interfaz interactiva TUI de svyaz",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		headerInfo := ui.HeaderInfo{
-			Version:      "v0.1.0",
-			RepoName:     ui.GetCurrentDirName(),
-			GitBranch:    ui.GetCurrentGitBranch(),
+			Version:      "v1.0.0",
+			WorkDir:      ui.GetActiveWorkDir(),
 			CurrentModel: "deepseek-coder",
-			TokensUsed:   1200,
-			TokenLimit:   32000,
+			ModelStatus:  "Ready",
 		}
 
 		if cfg != nil && cfg.LLM.Model != "" {

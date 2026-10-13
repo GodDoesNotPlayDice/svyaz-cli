@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -11,66 +10,68 @@ import (
 
 type HeaderInfo struct {
 	Version      string
-	RepoName     string
-	GitBranch    string
+	WorkDir      string
 	CurrentModel string
-	TokensUsed   int
-	TokenLimit   int
+	ModelStatus  string
 }
 
-// GetCurrentGitBranch retrieves the active git branch name cleanly
-func GetCurrentGitBranch() string {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	out, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
-}
-
-// GetCurrentDirName gets the basename of current directory
-func GetCurrentDirName() string {
+// GetActiveWorkDir returns the current working directory path
+func GetActiveWorkDir() string {
 	wd, err := os.Getwd()
 	if err != nil {
-		return "repo"
+		return "."
 	}
-	parts := strings.Split(strings.TrimRight(wd, "/"), "/")
-	if len(parts) > 0 {
-		return parts[len(parts)-1]
-	}
-	return "repo"
+	return wd
 }
 
-// RenderHeader generates the sober Antigravity-like top bar
+// RenderHeader renders the Antigravity-style header with chain links logo and 3 metadata lines
 func RenderHeader(info HeaderInfo, width int) string {
-	brand := BrandStyle.Render("svyaz") + " " + VersionStyle.Render(info.Version)
-
-	repoText := info.RepoName
-	if info.GitBranch != "" {
-		repoText = fmt.Sprintf("%s (%s)", info.RepoName, info.GitBranch)
+	// 1. Chain links logo (5 lines)
+	logoLines := []string{
+		LogoChainStyle.Render("┌────┐  ┌────┐"),
+		LogoChainStyle.Render("│ ┌──┼──┼──┐ │"),
+		LogoChainStyle.Render("│ └──┼──┼──┘ │"),
+		LogoChainStyle.Render("└────┘  └────┘"),
+		LogoTextStyle.Render("   S V Y A Z  "),
 	}
-	repoPart := HeaderItemStyle.Render("repo: ") + HeaderItemValueStyle.Render(repoText)
+	logoBlock := strings.Join(logoLines, "\n")
 
-	modelPart := HeaderItemStyle.Render("model: ") + HeaderAccentValueStyle.Render(info.CurrentModel)
-
-	tokenPart := HeaderItemStyle.Render("tokens: ") + HeaderItemValueStyle.Render(
-		fmt.Sprintf("%.1fk/%.0fk", float64(info.TokensUsed)/1000.0, float64(info.TokenLimit)/1000.0),
-	)
-
-	sep := HeaderSeparatorStyle.String()
-	content := lipgloss.JoinHorizontal(
-		lipgloss.Center,
-		brand,
-		sep,
-		repoPart,
-		sep,
-		modelPart,
-		sep,
-		tokenPart,
-	)
-
-	if width > 0 {
-		return HeaderContainerStyle.Width(width).Render(content)
+	// 2. Metadata (3 lines)
+	version := info.Version
+	if version == "" {
+		version = "v1.0.0"
 	}
-	return HeaderContainerStyle.Render(content)
+	model := info.CurrentModel
+	if model == "" {
+		model = "deepseek-coder"
+	}
+	path := info.WorkDir
+	if path == "" {
+		path = GetActiveWorkDir()
+	}
+
+	line1 := MetaTitleStyle.Render("Svyaz CLI ") + MetaVersionStyle.Render(version)
+	line2 := MetaLabelStyle.Render("Model: ") + MetaModelStyle.Render(model)
+	line3 := MetaLabelStyle.Render("Path:  ") + MetaPathStyle.Render(path)
+
+	metaBlock := lipgloss.NewStyle().
+		PaddingLeft(3).
+		Render(fmt.Sprintf("%s\n%s\n%s", line1, line2, line3))
+
+	// Combine Logo + Metadata horizontally (aligned to top)
+	headerContent := lipgloss.JoinHorizontal(lipgloss.Top, logoBlock, metaBlock)
+
+	// Outer padding around header
+	paddedHeader := lipgloss.NewStyle().
+		Padding(1, 2, 1, 2).
+		Render(headerContent)
+
+	// Horizontal separator line spanning full width
+	sepWidth := width
+	if sepWidth <= 0 {
+		sepWidth = 80
+	}
+	separator := SeparatorLineStyle.Render(strings.Repeat("─", sepWidth))
+
+	return paddedHeader + "\n" + separator
 }

@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -9,32 +12,29 @@ type KeyHint struct {
 	Desc string
 }
 
-// RenderStatusBar renders a minimalist status bar at the bottom
+// RenderFooter renders the bottom bar with '? for shortcuts' on the left and model status on the right
+func RenderFooter(modelStatus string, width int) string {
+	if modelStatus == "" {
+		modelStatus = "Ready"
+	}
+
+	left := FooterHintStyle.Render("? for shortcuts")
+	dot := FooterDotReadyStyle.Render("●")
+	right := fmt.Sprintf("%s %s", dot, FooterStatusStyle.Render(modelStatus))
+
+	paddingX := 2
+	availableWidth := width - (paddingX * 2)
+
+	gap := availableWidth - lipgloss.Width(left) - lipgloss.Width(right)
+	if gap < 1 {
+		gap = 1
+	}
+
+	content := left + strings.Repeat(" ", gap) + right
+	return FooterContainerStyle.Width(width).Render(content)
+}
+
+// RenderStatusBar fallback for structured hints
 func RenderStatusBar(hints []KeyHint, width int) string {
-	if len(hints) == 0 {
-		hints = []KeyHint{
-			{Key: "Enter", Desc: "enviar"},
-			{Key: "Esc", Desc: "cancelar"},
-			{Key: "Tab", Desc: "autocompletar"},
-			{Key: "/help", Desc: "comandos"},
-			{Key: "Ctrl+C", Desc: "salir"},
-		}
-	}
-
-	var items []string
-	dot := StatusBarDotStyle.String()
-
-	for i, h := range hints {
-		rendered := StatusBarKeyStyle.Render(h.Key) + " " + StatusBarDescStyle.Render(h.Desc)
-		items = append(items, rendered)
-		if i < len(hints)-1 {
-			items = append(items, dot)
-		}
-	}
-
-	content := lipgloss.JoinHorizontal(lipgloss.Center, items...)
-	if width > 0 {
-		return StatusBarContainerStyle.Width(width).Render(content)
-	}
-	return StatusBarContainerStyle.Render(content)
+	return RenderFooter("Ready", width)
 }
