@@ -54,10 +54,11 @@ type Plan struct {
 
 // Patch represents a unified diff produced by the Coder Agent
 type Patch struct {
-	FilePath string `json:"file_path"`
-	Diff     string `json:"diff"`
-	AddCount int    `json:"add_count"`
-	DelCount int    `json:"del_count"`
+	FilePath   string `json:"file_path"`
+	Diff       string `json:"diff"`
+	AddCount   int    `json:"add_count"`
+	DelCount   int    `json:"del_count"`
+	TokensUsed int    `json:"tokens_used,omitempty"`
 }
 
 // IntentType classifies whether the user is chatting/asking or requesting code changes
@@ -68,18 +69,29 @@ const (
 	IntentCodeChange IntentType = "code_change"
 )
 
+// ExecutionStep represents a discrete step performed during agent orchestration
+type ExecutionStep struct {
+	ToolName string
+	Action   string
+	Details  string
+	Status   string
+}
+
 // PlannerResult represents the output from PlannerAgent
 type PlannerResult struct {
-	Intent  IntentType
-	Content string
-	Plan    *Plan
+	Intent     IntentType
+	Content    string
+	Plan       *Plan
+	TokensUsed int
 }
 
 // ExecutionResult represents the complete output from Orchestrator.ProcessInput
 type ExecutionResult struct {
-	Intent   IntentType
-	Response string
-	Plan     *Plan
-	Patch    *Patch
+	Intent     IntentType
+	Response   string
+	Plan       *Plan
+	Patch      *Patch
+	TokensUsed int
+	Steps      []ExecutionStep
 }
 

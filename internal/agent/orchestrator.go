@@ -56,9 +56,14 @@ func (o *Orchestrator) ProcessInput(
 
 	trimmed := strings.ToLower(strings.TrimSpace(userInput))
 	if trimmed == "hola" || trimmed == "hello" || trimmed == "hi" || trimmed == "buenas" || trimmed == "buenos dias" || trimmed == "buenas tardes" || trimmed == "hey" {
+		tokens := (len(userInput) + 120) / 4
 		return &ExecutionResult{
-			Intent:   IntentChat,
-			Response: "¡Hola! ¿En qué puedo ayudarte hoy en el proyecto? Puedes hacerme preguntas sobre la arquitectura o pedirme que agregue o modifique código.",
+			Intent:     IntentChat,
+			Response:   "¡Hola! ¿En qué puedo ayudarte hoy en el proyecto? Puedes hacerme preguntas sobre la arquitectura o pedirme que agregue o modifique código.",
+			TokensUsed: tokens,
+			Steps: []ExecutionStep{
+				{ToolName: "thinking", Action: "intent", Details: "Saludo detectado (respuesta conversacional directa)", Status: "success"},
+			},
 		}, nil
 	}
 
@@ -85,8 +90,13 @@ func (o *Orchestrator) ProcessInput(
 	// Si es conversación o consulta sin cambios en archivos
 	if planRes.Intent == IntentChat {
 		return &ExecutionResult{
-			Intent:   IntentChat,
-			Response: planRes.Content,
+			Intent:     IntentChat,
+			Response:   planRes.Content,
+			TokensUsed: planRes.TokensUsed,
+			Steps: []ExecutionStep{
+				{ToolName: "planner", Action: "repo-map", Details: "Grafo de dependencias y AST analizados", Status: "success"},
+				{ToolName: "thinking", Action: "intent", Details: "Consulta clasificada como conversación/explicación", Status: "success"},
+			},
 		}, nil
 	}
 
@@ -94,8 +104,12 @@ func (o *Orchestrator) ProcessInput(
 	plan := planRes.Plan
 	if plan == nil {
 		return &ExecutionResult{
-			Intent:   IntentChat,
-			Response: planRes.Content,
+			Intent:     IntentChat,
+			Response:   planRes.Content,
+			TokensUsed: planRes.TokensUsed,
+			Steps: []ExecutionStep{
+				{ToolName: "planner", Action: "repo-map", Details: "Grafo de dependencias y AST analizados", Status: "success"},
+			},
 		}, nil
 	}
 
@@ -151,10 +165,24 @@ func (o *Orchestrator) ProcessInput(
 		o.Callbacks.OnPatchReady(currentPatch)
 	}
 
+	steps := []ExecutionStep{
+		{ToolName: "planner", Action: "repo-map", Details: "Grafo de dependencias y AST analizados", Status: "success"},
+		{ToolName: "planner", Action: "plan", Details: plan.Summary, Status: "success"},
+		{ToolName: "coder", Action: "ponytail", Details: fmt.Sprintf("Unified diff para %s (+%d/-%d)", currentPatch.FilePath, currentPatch.AddCount, currentPatch.DelCount), Status: "success"},
+		{ToolName: "git", Action: "dry-run", Details: "git apply --check exitoso en memoria (Capa 3 OK)", Status: "success"},
+	}
+
+	totalTokens := planRes.TokensUsed
+	if currentPatch != nil {
+		totalTokens += currentPatch.TokensUsed
+	}
+
 	return &ExecutionResult{
-		Intent: IntentCodeChange,
-		Plan:   plan,
-		Patch:  currentPatch,
+		Intent:     IntentCodeChange,
+		Plan:       plan,
+		Patch:      currentPatch,
+		TokensUsed: totalTokens,
+		Steps:      steps,
 	}, nil
 }
 

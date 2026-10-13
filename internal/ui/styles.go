@@ -90,8 +90,7 @@ var (
 
 	// Message / Chat History Styles
 	UserMessageStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color(ColorTextPrimary)).
-				Bold(true)
+				Foreground(lipgloss.Color(ColorAccentBlue))
 
 	UserPrefixStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color(ColorAccentBlue)).

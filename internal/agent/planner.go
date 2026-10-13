@@ -65,7 +65,16 @@ func (p *PlannerAgent) PlanTask(
 	}
 
 	content := resp.Choices[0].Message.Content
-	return parsePlannerResult(content), nil
+	tokens := resp.Usage.TotalTokens
+	if tokens == 0 {
+		tokens = (len(prompt) + len(content)) / 4
+		if tokens < 10 {
+			tokens = 10
+		}
+	}
+	res := parsePlannerResult(content)
+	res.TokensUsed = tokens
+	return res, nil
 }
 
 func parsePlannerResult(content string) *PlannerResult {

@@ -70,6 +70,14 @@ func (c *CoderAgent) GeneratePatch(
 	}
 
 	content := resp.Choices[0].Message.Content
+	tokens := resp.Usage.TotalTokens
+	if tokens == 0 {
+		tokens = (len(sb.String()) + len(content)) / 4
+		if tokens < 10 {
+			tokens = 10
+		}
+	}
+
 	filePath, diffText, addCount, delCount := ExtractDiff(content)
 
 	if diffText == "" {
@@ -77,10 +85,11 @@ func (c *CoderAgent) GeneratePatch(
 	}
 
 	return &Patch{
-		FilePath: filePath,
-		Diff:     diffText,
-		AddCount: addCount,
-		DelCount: delCount,
+		FilePath:   filePath,
+		Diff:       diffText,
+		AddCount:   addCount,
+		DelCount:   delCount,
+		TokensUsed: tokens,
 	}, nil
 }
 

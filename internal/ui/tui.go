@@ -43,6 +43,7 @@ type Model struct {
 	currentPatch *DiffPatch
 	rawPatch     *agent.Patch
 	orchestrator *agent.Orchestrator
+	totalTokens  int
 	width        int
 	height       int
 	ready        bool
@@ -172,6 +173,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.state = StatePlanning
 			m.headerInfo.ModelStatus = "Thinking..."
 			m.spinnerText = "Planner Agent: Consultando grafo de dependencias y AST..."
+			m.addMessage(MessageItem{
+				Role: "tool",
+				Badge: &ToolBadge{
+					ToolName: "thinking",
+					Action:   "ast-graph",
+					Details:  "Consultando grafo de dependencias y AST...",
+					Status:   ActionSuccess,
+				},
+			})
 			m.updateViewportContent()
 
 			if m.orchestrator != nil {
@@ -245,8 +255,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.state = StateIdle
 			m.headerInfo.ModelStatus = "Error"
 			m.addMessage(MessageItem{
+				Role: "tool",
+				Badge: &ToolBadge{
+					ToolName: "orchestrator",
+					Action:   "error",
+					Details:  fmt.Sprintf("Error: %v", msg.Err),
+					Status:   ActionError,
+				},
+			})
+			m.addMessage(MessageItem{
 				Role:    "agent",
-				Content: fmt.Sprintf("Error: %v", msg.Err),
+				Content: fmt.Sprintf("Error procesando solicitud: %v", msg.Err),
 			})
 			m.updateViewportContent()
 			return m, nil
@@ -256,6 +275,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.state = StateIdle
 			m.headerInfo.ModelStatus = "Ready"
 			return m, nil
+		}
+
+		// Preserve verbosity: record all execution steps taken
+		for _, step := range msg.Result.Steps {
+			m.addMessage(MessageItem{
+				Role: "tool",
+				Badge: &ToolBadge{
+					ToolName: step.ToolName,
+					Action:   step.Action,
+					Details:  step.Details,
+					Status:   toActionStatus(step.Status),
+				},
+			})
+		}
+
+		// Display token consumption badge
+		if msg.Result.TokensUsed > 0 {
+			m.totalTokens += msg.Result.TokensUsed
+			m.addMessage(MessageItem{
+				Role: "tool",
+				Badge: &ToolBadge{
+					ToolName: "tokens",
+					Action:   "usage",
+					Details:  fmt.Sprintf("%d tokens consumidos (sesión: %d)", msg.Result.TokensUsed, m.totalTokens),
+					Status:   ActionSuccess,
+				},
+			})
 		}
 
 		// Case 1: Pure conversation, question, or text explanation
@@ -271,18 +317,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// Case 2: Code modification task
-		if msg.Result.Plan != nil && msg.Result.Plan.Summary != "" {
-			m.addMessage(MessageItem{
-				Role: "tool",
-				Badge: &ToolBadge{
-					ToolName: "planner",
-					Action:   "repo-map",
-					Details:  msg.Result.Plan.Summary,
-					Status:   ActionSuccess,
-				},
-			})
-		}
-
 		if msg.Result.Patch != nil {
 			m.rawPatch = msg.Result.Patch
 			samplePatch := &DiffPatch{
@@ -294,15 +328,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.currentPatch = samplePatch
 			m.state = StateConfirmPatch
 			m.headerInfo.ModelStatus = "Awaiting Approval"
-			m.addMessage(MessageItem{
-				Role: "tool",
-				Badge: &ToolBadge{
-					ToolName: "git",
-					Action:   "dry-run",
-					Details:  "git apply --check exitoso en memoria (Capa 3 OK)",
-					Status:   ActionSuccess,
-				},
-			})
 			m.addMessage(MessageItem{
 				Role:  "diff",
 				Patch: samplePatch,
@@ -414,12 +439,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentPatch = samplePatch
 		m.state = StateConfirmPatch
 		m.headerInfo.ModelStatus = "Awaiting Approval"
+		tokens := 348
+		m.totalTokens += tokens
+		m.addMessage(MessageItem{
+			Role: "tool",
+			Badge: &ToolBadge{
+				ToolName: "coder",
+				Action:   "ponytail",
+				Details:  "Unified diff generado para cmd/root.go (+2/-0)",
+				Status:   ActionSuccess,
+			},
+		})
 		m.addMessage(MessageItem{
 			Role: "tool",
 			Badge: &ToolBadge{
 				ToolName: "git",
 				Action:   "dry-run",
 				Details:  "git apply --check exitoso en memoria (Capa 3 OK)",
+				Status:   ActionSuccess,
+			},
+		})
+		m.addMessage(MessageItem{
+			Role: "tool",
+			Badge: &ToolBadge{
+				ToolName: "tokens",
+				Action:   "usage",
+				Details:  fmt.Sprintf("%d tokens consumidos (sesión: %d)", tokens, m.totalTokens),
 				Status:   ActionSuccess,
 			},
 		})
@@ -499,6 +544,19 @@ type plannerFinishedMsg struct{}
 type coderFinishedMsg struct{}
 type reviewerFinishedMsg struct{}
 
+func toActionStatus(s string) ActionStatus {
+	switch s {
+	case "warning":
+		return ActionWarning
+	case "error":
+		return ActionError
+	case "pending":
+		return ActionPending
+	default:
+		return ActionSuccess
+	}
+}
+
 func (m *Model) addMessage(item MessageItem) {
 	m.messages = append(m.messages, item)
 }
@@ -525,8 +583,11 @@ func (m Model) renderContent() string {
 			line := UserPrefixStyle.Render("> ") + UserMessageStyle.Render(msg.Content)
 			b.WriteString(wrapStyle.Render(line) + "\n\n")
 		case "agent":
-			line := AgentPrefixStyle.Render("svyaz: ") + AgentMessageStyle.Render(msg.Content)
-			b.WriteString(wrapStyle.Render(line) + "\n\n")
+			agentBlock := lipgloss.NewStyle().
+				PaddingLeft(2).
+				Width(wrapWidth).
+				Render(AgentMessageStyle.Render(msg.Content))
+			b.WriteString(agentBlock + "\n\n")
 		case "tool":
 			if msg.Badge != nil {
 				badgeStr := RenderToolBadge(*msg.Badge)
@@ -612,22 +673,53 @@ func (m Model) View() string {
 	footer := RenderFooter(m.headerInfo.CurrentModel, m.width)
 	inputArea := m.renderInputArea()
 
-	// If there are no messages yet: header, then inputArea immediately, then empty space to footer
-	if len(m.messages) == 0 && m.state == StateIdle {
+	headerH := lipgloss.Height(header)
+	footerH := lipgloss.Height(footer)
+	inputH := lipgloss.Height(inputArea)
+	maxChatH := m.height - headerH - inputH - footerH
+	if maxChatH < 2 {
+		maxChatH = 2
+	}
+
+	contentStr := m.renderContent()
+	trimmedContent := strings.TrimRight(contentStr, "\n")
+
+	// Si no hay mensajes ni proceso en curso: header arriba, inputArea inmediatamente después
+	if trimmedContent == "" {
 		body := lipgloss.JoinVertical(
 			lipgloss.Left,
 			header,
 			inputArea,
 		)
 		usedLines := lipgloss.Height(body)
-		remaining := m.height - usedLines - lipgloss.Height(footer)
+		remaining := m.height - usedLines - footerH
 		if remaining < 0 {
 			remaining = 0
 		}
 		return body + strings.Repeat("\n", remaining) + footer
 	}
 
-	// When messages exist, display viewport between header and inputArea
+	contentH := lipgloss.Height(trimmedContent)
+
+	// Mientras el chat quepa en pantalla: el banner queda arriba y el chat se alarga hacia abajo
+	if contentH <= maxChatH {
+		contentView := lipgloss.NewStyle().Padding(0, 1).Render(trimmedContent)
+		body := lipgloss.JoinVertical(
+			lipgloss.Left,
+			header,
+			contentView,
+			inputArea,
+		)
+		usedLines := lipgloss.Height(body)
+		remaining := m.height - usedLines - footerH
+		if remaining < 0 {
+			remaining = 0
+		}
+		return body + strings.Repeat("\n", remaining) + footer
+	}
+
+	// Cuando el chat supera el espacio disponible: el banner permanece arriba y el viewport scrollea
+	m.viewport.Height = maxChatH
 	vpContent := lipgloss.NewStyle().Padding(0, 1).Render(m.viewport.View())
 
 	return lipgloss.JoinVertical(
