@@ -1,0 +1,266 @@
+{
+  "communities": {
+    "0": [
+      "go_pkg_github_com_charmbracelet_bubbles_spinner",
+      "go_pkg_github_com_charmbracelet_bubbles_textinput",
+      "go_pkg_github_com_charmbracelet_bubbles_viewport",
+      "go_type_github_com_charmbracelet_bubbles_spinner_model",
+      "go_type_github_com_charmbracelet_bubbles_textinput_model",
+      "go_type_github_com_charmbracelet_bubbles_viewport_model",
+      "internal_ui_header_renderheader",
+      "internal_ui_tui",
+      "internal_ui_tui_newmodel",
+      "ui_appstate",
+      "ui_coderfinishedmsg",
+      "ui_headerinfo",
+      "ui_messageitem",
+      "ui_model",
+      "ui_model_addmessage",
+      "ui_model_view",
+      "ui_plannerfinishedmsg",
+      "ui_reviewerfinishedmsg"
+    ],
+    "1": [
+      "cmd_chat",
+      "cmd_chat_init",
+      "cmd_mcp",
+      "cmd_mcp_init",
+      "cmd_root",
+      "cmd_root_execute",
+      "cmd_root_init",
+      "cmd_root_initconfig",
+      "go_pkg_github_com_charmbracelet_bubbletea",
+      "go_pkg_github_com_charmbracelet_lipgloss",
+      "go_pkg_github_com_spf13_cobra",
+      "internal_ui_statusbar",
+      "internal_ui_statusbar_renderstatusbar",
+      "internal_ui_styles",
+      "main",
+      "main_main",
+      "ui_keyhint"
+    ],
+    "2": [
+      "cmd_run",
+      "cmd_run_init",
+      "go_pkg_bytes",
+      "go_pkg_fmt",
+      "go_pkg_os",
+      "go_pkg_os_exec",
+      "go_pkg_path_filepath",
+      "go_pkg_strings",
+      "internal_harness_patcher",
+      "internal_harness_verifier",
+      "internal_ui_diffview",
+      "internal_ui_diffview_renderdiffview",
+      "internal_ui_header",
+      "internal_ui_header_getcurrentdirname",
+      "internal_ui_header_getcurrentgitbranch",
+      "ui_diffpatch"
+    ],
+    "3": [
+      "go_type_github_com_charmbracelet_bubbletea_cmd",
+      "go_type_github_com_charmbracelet_bubbletea_model",
+      "go_type_github_com_charmbracelet_bubbletea_msg",
+      "internal_ui_badge",
+      "internal_ui_badge_rendertoolbadge",
+      "ui_actionstatus",
+      "ui_model_init",
+      "ui_model_rendercontent",
+      "ui_model_update",
+      "ui_model_updateviewportcontent",
+      "ui_toolbadge"
+    ],
+    "4": [
+      "agent_message",
+      "agent_patch",
+      "agent_plan",
+      "agent_planstep",
+      "agent_role",
+      "agent_toolcall",
+      "agent_toolresult",
+      "go_pkg_time",
+      "go_type_time_time",
+      "internal_agent_types"
+    ],
+    "5": [
+      "config_agentconfig",
+      "config_config",
+      "config_llmconfig",
+      "config_mcpserverconfig",
+      "config_skillsconfig",
+      "go_pkg_gopkg_in_yaml_v3",
+      "internal_config_config",
+      "internal_config_config_defaultconfig",
+      "internal_config_config_load"
+    ],
+    "6": [
+      "internal_mcp_validator",
+      "internal_mcp_validator_newvalidator",
+      "mcp_tooldefinition",
+      "mcp_toolparameterspec",
+      "mcp_validator",
+      "mcp_validator_registertool",
+      "mcp_validator_validate"
+    ],
+    "7": [
+      "harness_verificationresult",
+      "harness_verifier",
+      "harness_verifier_detectprojectcommand",
+      "harness_verifier_pruneoutput",
+      "harness_verifier_runverification",
+      "internal_harness_verifier_newverifier"
+    ],
+    "8": [
+      "harness_patcher",
+      "harness_patcher_apply",
+      "harness_patcher_dryrun",
+      "internal_harness_patcher_newpatcher"
+    ],
+    "9": [
+      "pkg_github_com_xaxa_svyaz_cli"
+    ]
+  },
+  "cohesion": {
+    "0": 0.1503267973856209,
+    "1": 0.16911764705882354,
+    "2": 0.23333333333333334,
+    "3": 0.23636363636363636,
+    "4": 0.28888888888888886,
+    "5": 0.4166666666666667,
+    "6": 0.47619047619047616,
+    "7": 0.4666666666666667,
+    "8": 0.6666666666666666,
+    "9": 1.0
+  },
+  "gods": [
+    {
+      "id": "ui_model",
+      "label": "Model",
+      "degree": 15
+    },
+    {
+      "id": "config_config",
+      "label": "Config",
+      "degree": 7
+    },
+    {
+      "id": "ui_messageitem",
+      "label": "MessageItem",
+      "degree": 5
+    },
+    {
+      "id": "agent_message",
+      "label": "Message",
+      "degree": 5
+    },
+    {
+      "id": "mcp_validator",
+      "label": "Validator",
+      "degree": 5
+    },
+    {
+      "id": "harness_verifier",
+      "label": "Verifier",
+      "degree": 5
+    },
+    {
+      "id": "ui_headerinfo",
+      "label": "HeaderInfo",
+      "degree": 4
+    },
+    {
+      "id": "ui_diffpatch",
+      "label": "DiffPatch",
+      "degree": 4
+    },
+    {
+      "id": "ui_toolbadge",
+      "label": "ToolBadge",
+      "degree": 4
+    },
+    {
+      "id": "internal_config_config_load",
+      "label": "Load()",
+      "degree": 4
+    }
+  ],
+  "surprises": [
+    {
+      "source": "initConfig()",
+      "target": "Load()",
+      "source_files": [
+        "cmd/root.go",
+        "internal/config/config.go"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "main()",
+      "target": "Execute()",
+      "source_files": [
+        "main.go",
+        "cmd/root.go"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories"
+    },
+    {
+      "source": "MessageItem",
+      "target": "DiffPatch",
+      "source_files": [
+        "internal/ui/tui.go",
+        "internal/ui/diffview.go"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "MessageItem",
+      "target": "ToolBadge",
+      "source_files": [
+        "internal/ui/tui.go",
+        "internal/ui/badge.go"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "Model",
+      "target": "DiffPatch",
+      "source_files": [
+        "internal/ui/tui.go",
+        "internal/ui/diffview.go"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `Model` connect `tui.go` to `run.go`, `badge.go`?",
+      "why": "High betweenness centrality (0.179) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `github.com/xaxa/svyaz-cli` to the rest of the system?",
+      "why": "1 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `Verifier` connect `Verifier` to `run.go`?",
+      "why": "High betweenness centrality (0.044) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `Patcher` connect `Patcher` to `run.go`?",
+      "why": "High betweenness centrality (0.036) - this node is a cross-community bridge."
+    }
+  ]
+}

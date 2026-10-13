@@ -1,0 +1,32 @@
+# svyaz-cli configuration
+llm:
+  provider: "freellmapi"
+  base_url: "https://api.freellm.example/v1"
+  api_key: "${FREE_LLM_API_KEY}"
+  model: "deepseek-coder"
+  fallback_models:
+    - "qwen2.5-coder"
+    - "llama-3.1-70b"
+  timeout_seconds: 60
+  max_retries: 3
+
+mcp_servers:
+  token_savior:
+    command: "npx"
+    args: ["-y", "token-savior-mcp"]
+  graphify:
+    command: "graphify-mcp"
+    args: ["--root", "."]
+  engram:
+    command: "engram-mcp"
+    args: ["--db", "~/.svyaz/memory.db"]
+
+skills:
+  active:
+    - "ponytail"
+    - "ast-navigator"
+
+agent:
+  auto_compact_context: true
+  max_output_lines: 100
+  require_confirmation: true

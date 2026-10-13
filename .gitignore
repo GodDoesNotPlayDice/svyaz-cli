@@ -1,0 +1,14 @@
+# Binaries
+svyaz
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Local configuration & state
+.svyaz/
+*.log
+
+# Test & coverage
+*.out
+*.test
