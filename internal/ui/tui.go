@@ -49,7 +49,7 @@ func NewModel(info HeaderInfo) Model {
 	ti.TextStyle = PromptInputTextStyle
 	ti.Placeholder = ""
 	ti.Focus()
-	ti.CharLimit = 1000
+	ti.CharLimit = 2000
 
 	sp := spinner.New()
 	sp.Spinner = spinner.MiniDot
@@ -269,24 +269,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		headerHeight := 8    // logo (5) + padding + separator
-		promptHeight := 2    // prompt input
-		footerHeight := 1    // status bar
-		vpHeight := msg.Height - headerHeight - promptHeight - footerHeight
+		headerHeight := 7 // logo (5) + padding (2)
+		inputHeight := 3  // top bar (1) + prompt line (1) + bottom bar (1)
+		footerHeight := 1 // status bar
+		vpHeight := msg.Height - headerHeight - inputHeight - footerHeight
 		if vpHeight < 4 {
 			vpHeight = 4
 		}
 
 		if !m.ready {
-			m.viewport = viewport.New(msg.Width-4, vpHeight)
+			m.viewport = viewport.New(msg.Width-2, vpHeight)
 			m.viewport.SetContent(m.renderContent())
 			m.ready = true
 		} else {
-			m.viewport.Width = msg.Width - 4
+			m.viewport.Width = msg.Width - 2
 			m.viewport.Height = vpHeight
 			m.updateViewportContent()
 		}
-		m.input.Width = msg.Width - 6
+		m.input.Width = msg.Width - 4
 	}
 
 	m.input, tiCmd = m.input.Update(msg)
@@ -338,6 +338,18 @@ func (m Model) renderContent() string {
 	return b.String()
 }
 
+// renderInputArea renders the prompt framed immediately above and below by two light-gray bars
+func (m Model) renderInputArea() string {
+	w := m.width
+	if w <= 0 {
+		w = 80
+	}
+	bar := SeparatorLineStyle.Render(strings.Repeat("─", w))
+	promptLine := lipgloss.NewStyle().PaddingLeft(1).Render(m.input.View())
+
+	return bar + "\n" + promptLine + "\n" + bar
+}
+
 func (m Model) View() string {
 	if !m.ready {
 		return "Inicializando svyaz-cli..."
@@ -345,15 +357,14 @@ func (m Model) View() string {
 
 	header := RenderHeader(m.headerInfo, m.width)
 	footer := RenderFooter(m.headerInfo.ModelStatus, m.width)
-	prompt := lipgloss.NewStyle().PaddingLeft(2).Render(m.input.View())
+	inputArea := m.renderInputArea()
 
-	// If there are no messages yet: immediate descent to separator and prompt
+	// If there are no messages yet: header, then inputArea immediately, then empty space to footer
 	if len(m.messages) == 0 && m.state == StateIdle {
 		body := lipgloss.JoinVertical(
 			lipgloss.Left,
 			header,
-			"",
-			prompt,
+			inputArea,
 		)
 		usedLines := lipgloss.Height(body)
 		remaining := m.height - usedLines - lipgloss.Height(footer)
@@ -363,14 +374,14 @@ func (m Model) View() string {
 		return body + strings.Repeat("\n", remaining) + footer
 	}
 
-	// When messages exist, display viewport between header and prompt
-	vpContent := lipgloss.NewStyle().Padding(0, 2).Render(m.viewport.View())
+	// When messages exist, display viewport between header and inputArea
+	vpContent := lipgloss.NewStyle().Padding(0, 1).Render(m.viewport.View())
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		header,
 		vpContent,
-		prompt,
+		inputArea,
 		footer,
 	)
 }

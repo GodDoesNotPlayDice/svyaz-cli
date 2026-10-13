@@ -22,7 +22,7 @@ func RenderFooter(modelStatus string, width int) string {
 	dot := FooterDotReadyStyle.Render("●")
 	right := fmt.Sprintf("%s %s", dot, FooterStatusStyle.Render(modelStatus))
 
-	paddingX := 2
+	paddingX := 1
 	availableWidth := width - (paddingX * 2)
 
 	gap := availableWidth - lipgloss.Width(left) - lipgloss.Width(right)

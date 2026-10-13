@@ -9,6 +9,7 @@ const (
 	ColorTextMuted    = "#71717A" // Zinc 500
 	ColorTextDim      = "#52525B" // Zinc 600
 	ColorBorder       = "#27272A" // Zinc 800
+	ColorBorderLight  = "#71717A" // Zinc 500 (Gris claro visible para barras horizontales)
 	ColorBorderActive = "#3F3F46" // Zinc 700
 
 	ColorAccentBlue = "#38BDF8" // Sky 400 (Sober brand accent)
@@ -48,7 +49,7 @@ var (
 			Foreground(lipgloss.Color(ColorTextDim))
 
 	SeparatorLineStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color(ColorBorder))
+				Foreground(lipgloss.Color(ColorBorderLight))
 
 	// Brand and Title
 	BrandStyle = lipgloss.NewStyle().
@@ -71,7 +72,7 @@ var (
 
 	// Status Bar / Footer Styles
 	FooterContainerStyle = lipgloss.NewStyle().
-				Padding(0, 2)
+				Padding(0, 1)
 
 	FooterHintStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color(ColorTextDim))

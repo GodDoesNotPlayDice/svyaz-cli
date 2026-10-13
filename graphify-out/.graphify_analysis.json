@@ -2,31 +2,44 @@
   "communities": {
     "0": [
       "diffpatch",
-      "go_pkg_github_com_charmbracelet_bubbles_spinner",
-      "go_pkg_github_com_charmbracelet_bubbles_textinput",
-      "go_pkg_github_com_charmbracelet_bubbles_viewport",
       "go_type_github_com_charmbracelet_bubbles_spinner_model",
       "go_type_github_com_charmbracelet_bubbles_textinput_model",
       "go_type_github_com_charmbracelet_bubbles_viewport_model",
       "go_type_github_com_charmbracelet_bubbletea_cmd",
       "go_type_github_com_charmbracelet_bubbletea_model",
       "go_type_github_com_charmbracelet_bubbletea_msg",
-      "internal_ui_tui",
-      "internal_ui_tui_newmodel",
       "toolbadge",
       "ui_appstate",
-      "ui_coderfinishedmsg",
       "ui_messageitem",
       "ui_model",
       "ui_model_addmessage",
       "ui_model_init",
       "ui_model_rendercontent",
+      "ui_model_renderinputarea",
       "ui_model_update",
       "ui_model_updateviewportcontent",
+      "ui_model_view"
+    ],
+    "1": [
+      "cmd_chat",
+      "cmd_chat_init",
+      "cmd_mcp",
+      "cmd_mcp_init",
+      "go_pkg_github_com_charmbracelet_bubbles_spinner",
+      "go_pkg_github_com_charmbracelet_bubbles_textinput",
+      "go_pkg_github_com_charmbracelet_bubbles_viewport",
+      "go_pkg_github_com_charmbracelet_bubbletea",
+      "go_pkg_github_com_charmbracelet_lipgloss",
+      "go_pkg_github_com_spf13_cobra",
+      "go_pkg_testing",
+      "internal_ui_header_test",
+      "internal_ui_styles",
+      "internal_ui_tui",
+      "ui_coderfinishedmsg",
       "ui_plannerfinishedmsg",
       "ui_reviewerfinishedmsg"
     ],
-    "1": [
+    "2": [
       "cmd_root",
       "cmd_root_execute",
       "cmd_root_init",
@@ -45,7 +58,7 @@
       "main",
       "main_main"
     ],
-    "2": [
+    "3": [
       "cmd_run",
       "cmd_run_init",
       "go_pkg_bytes",
@@ -62,36 +75,7 @@
       "internal_ui_diffview_renderdiffview",
       "ui_diffpatch"
     ],
-    "3": [
-      "go_pkg_github_com_charmbracelet_lipgloss",
-      "go_type_testing_t",
-      "internal_ui_header",
-      "internal_ui_header_getactiveworkdir",
-      "internal_ui_header_renderheader",
-      "internal_ui_header_test_testrenderheaderandfooter",
-      "internal_ui_statusbar",
-      "internal_ui_statusbar_renderfooter",
-      "internal_ui_statusbar_renderstatusbar",
-      "internal_ui_styles",
-      "ui_headerinfo",
-      "ui_keyhint",
-      "ui_model_view"
-    ],
     "4": [
-      "cmd_chat",
-      "cmd_chat_init",
-      "cmd_mcp",
-      "cmd_mcp_init",
-      "go_pkg_github_com_charmbracelet_bubbletea",
-      "go_pkg_github_com_spf13_cobra",
-      "go_pkg_testing",
-      "internal_ui_badge",
-      "internal_ui_badge_rendertoolbadge",
-      "internal_ui_header_test",
-      "ui_actionstatus",
-      "ui_toolbadge"
-    ],
-    "5": [
       "agent_message",
       "agent_patch",
       "agent_plan",
@@ -102,6 +86,15 @@
       "go_pkg_time",
       "go_type_time_time",
       "internal_agent_types"
+    ],
+    "5": [
+      "go_type_testing_t",
+      "internal_ui_header",
+      "internal_ui_header_getactiveworkdir",
+      "internal_ui_header_renderheader",
+      "internal_ui_header_test_testrenderheaderandfooter",
+      "internal_ui_tui_newmodel",
+      "ui_headerinfo"
     ],
     "6": [
       "internal_mcp_validator",
@@ -121,25 +114,39 @@
       "internal_harness_verifier_newverifier"
     ],
     "8": [
+      "internal_ui_badge",
+      "internal_ui_badge_rendertoolbadge",
+      "ui_actionstatus",
+      "ui_toolbadge"
+    ],
+    "9": [
+      "internal_ui_statusbar",
+      "internal_ui_statusbar_renderfooter",
+      "internal_ui_statusbar_renderstatusbar",
+      "ui_keyhint"
+    ],
+    "10": [
       "pkg_github_com_xaxa_svyaz_cli"
     ]
   },
   "cohesion": {
-    "0": 0.11956521739130435,
-    "1": 0.19117647058823528,
-    "2": 0.23809523809523808,
-    "3": 0.23076923076923078,
-    "4": 0.22727272727272727,
-    "5": 0.28888888888888886,
+    "0": 0.16339869281045752,
+    "1": 0.16176470588235295,
+    "2": 0.19117647058823528,
+    "3": 0.23809523809523808,
+    "4": 0.28888888888888886,
+    "5": 0.38095238095238093,
     "6": 0.47619047619047616,
     "7": 0.4666666666666667,
-    "8": 1.0
+    "8": 0.8333333333333334,
+    "9": 0.8333333333333334,
+    "10": 1.0
   },
   "gods": [
     {
       "id": "ui_model",
       "label": "Model",
-      "degree": 15
+      "degree": 16
     },
     {
       "id": "config_config",
@@ -149,11 +156,6 @@
     {
       "id": "ui_messageitem",
       "label": "MessageItem",
-      "degree": 5
-    },
-    {
-      "id": "internal_ui_header_renderheader",
-      "label": "RenderHeader()",
       "degree": 5
     },
     {
@@ -182,8 +184,13 @@
       "degree": 4
     },
     {
-      "id": "internal_ui_header_test_testrenderheaderandfooter",
-      "label": "TestRenderHeaderAndFooter()",
+      "id": "internal_ui_header_renderheader",
+      "label": "RenderHeader()",
+      "degree": 4
+    },
+    {
+      "id": "internal_ui_tui_newmodel",
+      "label": "NewModel()",
       "degree": 4
     }
   ],
@@ -211,17 +218,6 @@
       "why": "connects across different repos/directories"
     },
     {
-      "source": "NewModel()",
-      "target": "HeaderInfo",
-      "source_files": [
-        "internal/ui/tui.go",
-        "internal/ui/header.go"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "references",
-      "why": "bridges separate communities"
-    },
-    {
       "source": "Model",
       "target": "HeaderInfo",
       "source_files": [
@@ -234,21 +230,32 @@
     },
     {
       "source": "TestRenderHeaderAndFooter()",
-      "target": "RenderHeader()",
+      "target": "NewModel()",
       "source_files": [
         "internal/ui/header_test.go",
-        "internal/ui/header.go"
+        "internal/ui/tui.go"
       ],
       "confidence": "INFERRED",
       "relation": "calls",
       "why": "inferred connection - not explicitly stated in source"
+    },
+    {
+      "source": "NewModel()",
+      "target": "HeaderInfo",
+      "source_files": [
+        "internal/ui/tui.go",
+        "internal/ui/header.go"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "cross-file semantic connection"
     }
   ],
   "questions": [
     {
       "type": "bridge_node",
-      "question": "Why does `Model` connect `tui.go` to `header.go`?",
-      "why": "High betweenness centrality (0.176) - this node is a cross-community bridge."
+      "question": "Why does `Model` connect `Model` to `tui.go`, `header.go`?",
+      "why": "High betweenness centrality (0.189) - this node is a cross-community bridge."
     },
     {
       "type": "isolated_nodes",
@@ -256,14 +263,9 @@
       "why": "1 weakly-connected nodes found - possible documentation gaps or missing edges."
     },
     {
-      "type": "low_cohesion",
-      "question": "Should `tui.go` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.11956521739130435 - nodes in this community are weakly interconnected."
-    },
-    {
       "type": "bridge_node",
       "question": "Why does `Verifier` connect `Verifier` to `go_pkg_fmt`?",
-      "why": "High betweenness centrality (0.042) - this node is a cross-community bridge."
+      "why": "High betweenness centrality (0.041) - this node is a cross-community bridge."
     }
   ]
 }

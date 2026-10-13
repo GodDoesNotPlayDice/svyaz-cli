@@ -1,1 +1,1 @@
-{"0": "tui.go", "1": "chat.go", "2": "run.go", "3": "badge.go", "4": "types.go", "5": "config.go", "6": "validator.go", "7": "Verifier", "8": "Patcher", "9": "github.com/xaxa/svyaz-cli"}
+{"0": "tui.go", "1": "config.go", "2": "go_pkg_fmt", "3": "header.go", "4": "chat.go", "5": "types.go", "6": "validator.go", "7": "Verifier", "8": "github.com/xaxa/svyaz-cli"}

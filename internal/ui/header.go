@@ -61,17 +61,10 @@ func RenderHeader(info HeaderInfo, width int) string {
 	// Combine Logo + Metadata horizontally (aligned to top)
 	headerContent := lipgloss.JoinHorizontal(lipgloss.Top, logoBlock, metaBlock)
 
-	// Outer padding around header
+	// Outer padding around header (left padding 1 to match >)
 	paddedHeader := lipgloss.NewStyle().
-		Padding(1, 2, 1, 2).
+		Padding(1, 1, 1, 1).
 		Render(headerContent)
 
-	// Horizontal separator line spanning full width
-	sepWidth := width
-	if sepWidth <= 0 {
-		sepWidth = 80
-	}
-	separator := SeparatorLineStyle.Render(strings.Repeat("─", sepWidth))
-
-	return paddedHeader + "\n" + separator
+	return paddedHeader
 }
