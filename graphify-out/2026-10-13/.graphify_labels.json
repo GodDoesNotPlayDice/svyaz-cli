@@ -1,1 +1,1 @@
-{"0": "chat.go", "1": "tui.go", "2": "llm/types.go", "3": "agent/types.go", "4": "Patch", "5": "ModelPool", "6": "planner.go", "7": "config.go", "8": "header.go", "9": "validator.go", "10": "github.com/xaxa/svyaz-cli", "11": "ToolBadge"}
+{"0": "tui.go", "1": "llm/types.go", "2": "Model", "3": "agent/types.go", "4": "Patch", "5": "mcp.go", "6": "ModelPool", "7": "Client", "8": "config.go", "9": "validator.go", "10": "github.com/xaxa/svyaz-cli"}
