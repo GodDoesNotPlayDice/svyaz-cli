@@ -9,7 +9,7 @@ const (
 	ColorTextMuted    = "#71717A" // Zinc 500
 	ColorTextDim      = "#52525B" // Zinc 600
 	ColorBorder       = "#27272A" // Zinc 800
-	ColorBorderLight  = "#71717A" // Zinc 500 (Gris claro visible para barras horizontales)
+	ColorBorderLight  = "#46474A" // Gris tenue y fino exacto (#46474A)
 	ColorBorderActive = "#3F3F46" // Zinc 700
 
 	ColorAccentBlue = "#38BDF8" // Sky 400 (Sober brand accent)
@@ -49,7 +49,8 @@ var (
 			Foreground(lipgloss.Color(ColorTextDim))
 
 	SeparatorLineStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color(ColorBorderLight))
+				Foreground(lipgloss.Color(ColorBorderLight)).
+				Bold(false)
 
 	// Brand and Title
 	BrandStyle = lipgloss.NewStyle().

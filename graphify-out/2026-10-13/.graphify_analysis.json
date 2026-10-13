@@ -154,6 +154,11 @@
       "degree": 7
     },
     {
+      "id": "ui_messageitem",
+      "label": "MessageItem",
+      "degree": 5
+    },
+    {
       "id": "agent_message",
       "label": "Message",
       "degree": 5
@@ -169,11 +174,6 @@
       "degree": 5
     },
     {
-      "id": "ui_messageitem",
-      "label": "MessageItem",
-      "degree": 5
-    },
-    {
       "id": "internal_config_config_load",
       "label": "Load()",
       "degree": 4
@@ -184,13 +184,13 @@
       "degree": 4
     },
     {
-      "id": "mcp_tooldefinition",
-      "label": "ToolDefinition",
+      "id": "internal_ui_header_renderheader",
+      "label": "RenderHeader()",
       "degree": 4
     },
     {
-      "id": "ui_headerinfo",
-      "label": "HeaderInfo",
+      "id": "internal_ui_tui_newmodel",
+      "label": "NewModel()",
       "degree": 4
     }
   ],

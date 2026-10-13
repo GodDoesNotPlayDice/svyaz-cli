@@ -84,10 +84,10 @@
     "semantic_hash": "a1caae9aea1a11b8fd3683e23a719887"
   },
   "internal/ui/styles.go": {
-    "mtime": 1791920695.800723,
-    "seen": 1791920818.240863,
-    "ast_hash": "e95c19a67a89a04bf414d9f778a9b594",
-    "semantic_hash": "e95c19a67a89a04bf414d9f778a9b594"
+    "mtime": 1791921104.9770637,
+    "seen": 1791921127.5785975,
+    "ast_hash": "1cbf3e9d65756aa6d7e21ea27efa1bd5",
+    "semantic_hash": "1cbf3e9d65756aa6d7e21ea27efa1bd5"
   },
   "internal/ui/tui.go": {
     "mtime": 1791920785.7170687,
