@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -12,15 +11,14 @@ type KeyHint struct {
 	Desc string
 }
 
-// RenderFooter renders the bottom bar with '? for shortcuts' on the left and model status on the right
-func RenderFooter(modelStatus string, width int) string {
-	if modelStatus == "" {
-		modelStatus = "Ready"
+// RenderFooter renders the bottom bar with '? for shortcuts' on the left and the active model on the right
+func RenderFooter(modelName string, width int) string {
+	if modelName == "" {
+		modelName = "deepseek-coder"
 	}
 
 	left := FooterHintStyle.Render("? for shortcuts")
-	dot := FooterDotReadyStyle.Render("●")
-	right := fmt.Sprintf("%s %s", dot, FooterStatusStyle.Render(modelStatus))
+	right := FooterStatusStyle.Render(modelName)
 
 	paddingX := 1
 	availableWidth := width - (paddingX * 2)
@@ -36,5 +34,5 @@ func RenderFooter(modelStatus string, width int) string {
 
 // RenderStatusBar fallback for structured hints
 func RenderStatusBar(hints []KeyHint, width int) string {
-	return RenderFooter("Ready", width)
+	return RenderFooter("deepseek-coder", width)
 }

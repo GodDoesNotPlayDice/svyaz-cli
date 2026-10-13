@@ -1,14 +1,42 @@
 # svyaz-cli configuration
 llm:
   provider: "freellmapi"
-  base_url: "https://api.freellm.example/v1"
+  base_url: "http://147.224.225.246:3001/v1"
   api_key: "${FREE_LLM_API_KEY}"
-  model: "deepseek-coder"
-  fallback_models:
-    - "qwen2.5-coder"
-    - "llama-3.1-70b"
+  primary_model: "codestral"
+  cooldown_seconds: 60
   timeout_seconds: 60
   max_retries: 3
+  fallback_pool:
+    # Tier 1: Coding & Deep Reasoning
+    - "codestral"
+    - "devstral-2"
+    - "north-mini-code"
+    - "qwen2.5-coder-32b"
+    - "gemini-3.8-flash"
+    - "gemini-3.7-flash"
+    - "deepseek-r1-distill-qwen-32b"
+    - "qwq-32b"
+    # Tier 2: General High-Capacity with Tools
+    - "mistral-large-3"
+    - "mistral-medium-3.5"
+    - "mistral-small-4"
+    - "gemini-3.6-flash"
+    - "gemini-3.5-flash"
+    - "gemini-3.5-flash-lite"
+    - "command-a-reasoning"
+    - "command-r-2"
+    - "qwen3.8-27b"
+    - "gpt-oss-120b"
+    - "nemotron-3-super-120b"
+    - "glm-4.7-flash"
+    # Tier 3: Fast Lightweight Fallbacks
+    - "ministral-3-14b"
+    - "ministral-3-8b"
+    - "sensenova-6.8-flash-lite"
+    - "command-r7b"
+    - "llama-3.1-8b"
+    - "gpt-oss-20b"
 
 mcp_servers:
   token_savior:

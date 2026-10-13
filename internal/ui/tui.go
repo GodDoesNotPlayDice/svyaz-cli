@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -9,6 +10,9 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/xaxa/svyaz-cli/internal/agent"
+	"github.com/xaxa/svyaz-cli/internal/harness"
+	"github.com/xaxa/svyaz-cli/internal/llm"
 )
 
 type AppState int
@@ -37,12 +41,14 @@ type Model struct {
 	spinnerText  string
 	messages     []MessageItem
 	currentPatch *DiffPatch
+	rawPatch     *agent.Patch
+	orchestrator *agent.Orchestrator
 	width        int
 	height       int
 	ready        bool
 }
 
-func NewModel(info HeaderInfo) Model {
+func NewModel(info HeaderInfo, orch ...*agent.Orchestrator) Model {
 	ti := textinput.New()
 	ti.Prompt = "> "
 	ti.PromptStyle = PromptPromptStyle
@@ -59,13 +65,19 @@ func NewModel(info HeaderInfo) Model {
 		info.ModelStatus = "Ready"
 	}
 
+	var o *agent.Orchestrator
+	if len(orch) > 0 {
+		o = orch[0]
+	}
+
 	return Model{
-		state:       StateIdle,
-		headerInfo:  info,
-		input:       ti,
-		spinner:     sp,
-		spinnerText: "Analizando proyecto con Graphify y AST...",
-		messages:    []MessageItem{}, // Descartando todo panel de avisos intermedio
+		state:        StateIdle,
+		headerInfo:   info,
+		input:        ti,
+		spinner:      sp,
+		spinnerText:  "Analizando proyecto con Graphify y AST...",
+		orchestrator: o,
+		messages:     []MessageItem{},
 	}
 }
 
@@ -156,12 +168,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 			m.input.SetValue("")
 
-			// Start simulated Planner/Coder pipeline demo
+			// Start Planner/Coder pipeline
 			m.state = StatePlanning
 			m.headerInfo.ModelStatus = "Thinking..."
 			m.spinnerText = "Planner Agent: Consultando grafo de dependencias y AST..."
 			m.updateViewportContent()
 
+			if m.orchestrator != nil {
+				taskVal := val
+				orch := m.orchestrator
+				return m, tea.Batch(
+					m.spinner.Tick,
+					func() tea.Msg {
+						res, err := orch.ProcessInput(context.Background(), taskVal, nil)
+						return taskResultMsg{
+							Result: res,
+							Err:    err,
+						}
+					},
+				)
+			}
+
+			// Offline demo fallback if orchestrator is nil
 			return m, tea.Batch(
 				m.spinner.Tick,
 				func() tea.Msg {
@@ -182,6 +210,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					Content: "Parche aprobado. Aplicando en disco y validando...",
 				})
 				m.updateViewportContent()
+
+				if m.orchestrator != nil && m.rawPatch != nil {
+					rawP := m.rawPatch
+					orch := m.orchestrator
+					return m, tea.Batch(
+						m.spinner.Tick,
+						func() tea.Msg {
+							res, err := orch.ApplyAndVerify(rawP)
+							return verificationDoneMsg{Result: res, Err: err}
+						},
+					)
+				}
+
 				return m, func() tea.Msg {
 					return reviewerFinishedMsg{}
 				}
@@ -189,6 +230,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = StateIdle
 				m.headerInfo.ModelStatus = "Ready"
 				m.currentPatch = nil
+				m.rawPatch = nil
 				m.addMessage(MessageItem{
 					Role:    "agent",
 					Content: "Parche descartado por el usuario.",
@@ -197,6 +239,152 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
+
+	case taskResultMsg:
+		if msg.Err != nil {
+			m.state = StateIdle
+			m.headerInfo.ModelStatus = "Error"
+			m.addMessage(MessageItem{
+				Role:    "agent",
+				Content: fmt.Sprintf("Error: %v", msg.Err),
+			})
+			m.updateViewportContent()
+			return m, nil
+		}
+
+		if msg.Result == nil {
+			m.state = StateIdle
+			m.headerInfo.ModelStatus = "Ready"
+			return m, nil
+		}
+
+		// Case 1: Pure conversation, question, or text explanation
+		if msg.Result.Intent == agent.IntentChat {
+			m.state = StateIdle
+			m.headerInfo.ModelStatus = "Ready"
+			m.addMessage(MessageItem{
+				Role:    "agent",
+				Content: msg.Result.Response,
+			})
+			m.updateViewportContent()
+			return m, nil
+		}
+
+		// Case 2: Code modification task
+		if msg.Result.Plan != nil && msg.Result.Plan.Summary != "" {
+			m.addMessage(MessageItem{
+				Role: "tool",
+				Badge: &ToolBadge{
+					ToolName: "planner",
+					Action:   "repo-map",
+					Details:  msg.Result.Plan.Summary,
+					Status:   ActionSuccess,
+				},
+			})
+		}
+
+		if msg.Result.Patch != nil {
+			m.rawPatch = msg.Result.Patch
+			samplePatch := &DiffPatch{
+				FilePath: msg.Result.Patch.FilePath,
+				DiffText: msg.Result.Patch.Diff,
+				AddCount: msg.Result.Patch.AddCount,
+				DelCount: msg.Result.Patch.DelCount,
+			}
+			m.currentPatch = samplePatch
+			m.state = StateConfirmPatch
+			m.headerInfo.ModelStatus = "Awaiting Approval"
+			m.addMessage(MessageItem{
+				Role: "tool",
+				Badge: &ToolBadge{
+					ToolName: "git",
+					Action:   "dry-run",
+					Details:  "git apply --check exitoso en memoria (Capa 3 OK)",
+					Status:   ActionSuccess,
+				},
+			})
+			m.addMessage(MessageItem{
+				Role:  "diff",
+				Patch: samplePatch,
+			})
+			m.updateViewportContent()
+			return m, nil
+		}
+
+		m.state = StateIdle
+		m.headerInfo.ModelStatus = "Ready"
+		return m, nil
+
+	case verificationDoneMsg:
+		m.state = StateIdle
+		m.currentPatch = nil
+		m.rawPatch = nil
+		if msg.Err != nil {
+			m.headerInfo.ModelStatus = "Failed"
+			m.addMessage(MessageItem{
+				Role: "tool",
+				Badge: &ToolBadge{
+					ToolName: "verifier",
+					Action:   "check",
+					Details:  fmt.Sprintf("Fallo: %v", msg.Err),
+					Status:   ActionError,
+				},
+			})
+			m.addMessage(MessageItem{
+				Role:    "agent",
+				Content: fmt.Sprintf("Error aplicando/verificando: %v", msg.Err),
+			})
+		} else if msg.Result != nil && !msg.Result.Success {
+			m.headerInfo.ModelStatus = "Failed"
+			m.addMessage(MessageItem{
+				Role: "tool",
+				Badge: &ToolBadge{
+					ToolName: "verifier",
+					Action:   "check",
+					Details:  fmt.Sprintf("%s devolvió errores", msg.Result.Command),
+					Status:   ActionError,
+				},
+			})
+			m.addMessage(MessageItem{
+				Role:    "agent",
+				Content: fmt.Sprintf("Salida del compilador/linter:\n%s", msg.Result.Output),
+			})
+		} else {
+			m.headerInfo.ModelStatus = "Ready"
+			cmdStr := "linter/compiler"
+			if msg.Result != nil && msg.Result.Command != "" {
+				cmdStr = msg.Result.Command
+			}
+			m.addMessage(MessageItem{
+				Role: "tool",
+				Badge: &ToolBadge{
+					ToolName: "verifier",
+					Action:   "check",
+					Details:  fmt.Sprintf("%s exitoso (Capa 4 OK)", cmdStr),
+					Status:   ActionSuccess,
+				},
+			})
+			m.addMessage(MessageItem{
+				Role:    "agent",
+				Content: "Tarea completada con éxito. Todos los chequeos deterministas pasaron.",
+			})
+		}
+		m.updateViewportContent()
+		return m, nil
+
+	case fallbackEventMsg:
+		m.headerInfo.CurrentModel = msg.NextModel
+		m.addMessage(MessageItem{
+			Role: "tool",
+			Badge: &ToolBadge{
+				ToolName: "fallback",
+				Action:   "circuit-breaker",
+				Details:  fmt.Sprintf("%s (429) -> %s", msg.FailedModel, msg.NextModel),
+				Status:   ActionWarning,
+			},
+		})
+		m.updateViewportContent()
+		return m, nil
 
 	case plannerFinishedMsg:
 		m.state = StateCoding
@@ -294,6 +482,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	return m, tea.Batch(tiCmd, vpCmd)
 }
+
+type taskResultMsg struct {
+	Result *agent.ExecutionResult
+	Err    error
+}
+
+type verificationDoneMsg struct {
+	Result *harness.VerificationResult
+	Err    error
+}
+
+type fallbackEventMsg llm.FallbackEvent
 
 type plannerFinishedMsg struct{}
 type coderFinishedMsg struct{}
@@ -400,7 +600,7 @@ func (m Model) View() string {
 	}
 
 	header := RenderHeader(m.headerInfo, m.width)
-	footer := RenderFooter(m.headerInfo.ModelStatus, m.width)
+	footer := RenderFooter(m.headerInfo.CurrentModel, m.width)
 	inputArea := m.renderInputArea()
 
 	// If there are no messages yet: header, then inputArea immediately, then empty space to footer

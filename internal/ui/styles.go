@@ -111,6 +111,9 @@ var (
 	ActionSuccessDotStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color(ColorSuccess))
 
+	ActionWarningDotStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorWarning))
+
 	ActionErrorDotStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color(ColorDanger))
 

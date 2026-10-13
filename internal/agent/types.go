@@ -59,3 +59,27 @@ type Patch struct {
 	AddCount int    `json:"add_count"`
 	DelCount int    `json:"del_count"`
 }
+
+// IntentType classifies whether the user is chatting/asking or requesting code changes
+type IntentType string
+
+const (
+	IntentChat       IntentType = "chat"
+	IntentCodeChange IntentType = "code_change"
+)
+
+// PlannerResult represents the output from PlannerAgent
+type PlannerResult struct {
+	Intent  IntentType
+	Content string
+	Plan    *Plan
+}
+
+// ExecutionResult represents the complete output from Orchestrator.ProcessInput
+type ExecutionResult struct {
+	Intent   IntentType
+	Response string
+	Plan     *Plan
+	Patch    *Patch
+}
+

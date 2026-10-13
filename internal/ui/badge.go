@@ -10,6 +10,7 @@ const (
 	ActionPending ActionStatus = iota
 	ActionSuccess
 	ActionError
+	ActionWarning
 )
 
 type ToolBadge struct {
@@ -25,6 +26,8 @@ func RenderToolBadge(badge ToolBadge) string {
 	switch badge.Status {
 	case ActionSuccess:
 		dot = ActionSuccessDotStyle.Render("✓")
+	case ActionWarning:
+		dot = ActionWarningDotStyle.Render("▲")
 	case ActionError:
 		dot = ActionErrorDotStyle.Render("✖")
 	default:

@@ -12,8 +12,10 @@ type LLMConfig struct {
 	Provider        string   `yaml:"provider"`
 	BaseURL         string   `yaml:"base_url"`
 	APIKey          string   `yaml:"api_key"`
-	Model           string   `yaml:"model"`
-	FallbackModels  []string `yaml:"fallback_models"`
+	Model           string   `yaml:"model"` // Primary model (legacy / shortcut)
+	PrimaryModel    string   `yaml:"primary_model"`
+	FallbackPool    []string `yaml:"fallback_pool"`
+	CooldownSeconds int      `yaml:"cooldown_seconds"`
 	TimeoutSeconds  int      `yaml:"timeout_seconds"`
 	MaxRetries      int      `yaml:"max_retries"`
 }
@@ -43,13 +45,62 @@ type Config struct {
 
 // DefaultConfig returns a sane default configuration optimized for FreeLLMAPI
 func DefaultConfig() *Config {
+	apiKey := os.Getenv("FREE_LLM_API_KEY")
+	if apiKey == "" {
+		apiKey = "freellmapi-d1a9aacfeeeec76524e36844e64b975ee9f30934ba79b5ba"
+	}
+
 	return &Config{
 		LLM: LLMConfig{
-			Provider:       "freellmapi",
-			BaseURL:        "https://api.freellm.example/v1",
-			APIKey:         os.Getenv("FREE_LLM_API_KEY"),
-			Model:          "deepseek-coder",
-			FallbackModels: []string{"qwen2.5-coder", "llama-3.1-70b"},
+			Provider:        "freellmapi",
+			BaseURL:         "http://147.224.225.246:3001/v1",
+			APIKey:          apiKey,
+			Model:           "codestral",
+			PrimaryModel:    "codestral",
+			CooldownSeconds: 60,
+			FallbackPool: []string{
+				// Tier 1: Coding & Deep Reasoning
+				"codestral",
+				"devstral-2",
+				"north-mini-code",
+				"qwen2.5-coder-32b",
+				"gemini-3.8-flash",
+				"gemini-3.7-flash",
+				"deepseek-r1-distill-qwen-32b",
+				"qwq-32b",
+				// Tier 2: General High-Capacity with Tools
+				"mistral-large-3",
+				"mistral-medium-3.5",
+				"mistral-small-4",
+				"mistral-small-3.1-24b",
+				"gemini-3.6-flash",
+				"gemini-3.5-flash",
+				"gemini-3.5-flash-lite",
+				"gemini-3.1-flash-lite",
+				"command-a",
+				"command-a-2",
+				"command-a-reasoning",
+				"command-r-2",
+				"command-r",
+				"qwen3.8-27b",
+				"gpt-oss-120b",
+				"nemotron-3-super-120b",
+				"nemotron-3.5-lightning",
+				"glm-4.7-flash",
+				"llama-3.3-70b-fp8-fast",
+				"llama-4-scout",
+				// Tier 3: Fast Lightweight Fallbacks
+				"ministral-3-14b",
+				"ministral-3-8b",
+				"ministral-3-3b",
+				"sensenova-6.8-flash-lite",
+				"poolside-laguna-xs-2.1",
+				"dots3-note-preview",
+				"command-r7b",
+				"llama-3.1-8b",
+				"llama-3.2-3b",
+				"gpt-oss-20b",
+			},
 			TimeoutSeconds: 60,
 			MaxRetries:     3,
 		},
