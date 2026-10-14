@@ -50,6 +50,7 @@ type PlanStep struct {
 type Plan struct {
 	Summary string     `json:"summary"`
 	Steps   []PlanStep `json:"steps"`
+	Files   []string   `json:"files,omitempty"`
 }
 
 // Patch represents a unified diff produced by the Coder Agent

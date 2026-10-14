@@ -21,7 +21,7 @@ func NewPatcher(workDir string) *Patcher {
 
 // DryRun tests the patch against the working tree in memory without modifying files
 func (p *Patcher) DryRun(diffText string) error {
-	cmd := exec.Command("git", "apply", "--check", "-")
+	cmd := exec.Command("git", "apply", "--recount", "--ignore-whitespace", "--check", "-")
 	cmd.Dir = p.workDir
 	cmd.Stdin = strings.NewReader(diffText)
 
@@ -41,7 +41,7 @@ func (p *Patcher) Apply(diffText string) error {
 		return fmt.Errorf("refusing to apply invalid patch: %w", err)
 	}
 
-	cmd := exec.Command("git", "apply", "-")
+	cmd := exec.Command("git", "apply", "--recount", "--ignore-whitespace", "-")
 	cmd.Dir = p.workDir
 	cmd.Stdin = strings.NewReader(diffText)
 

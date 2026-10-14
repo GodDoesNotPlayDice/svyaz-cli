@@ -58,39 +58,49 @@ func (o *Orchestrator) ProcessInput(
 	}
 
 	trimmed := strings.ToLower(strings.TrimSpace(userInput))
-	if trimmed == "hola" || trimmed == "hello" || trimmed == "hi" || trimmed == "buenas" || trimmed == "buenos dias" || trimmed == "buenas tardes" || trimmed == "hey" {
+	if trimmed == "hola" || trimmed == "buenas" || trimmed == "buenos dias" || trimmed == "buenas tardes" {
 		tokens := (len(userInput) + 120) / 4
 		return &ExecutionResult{
 			Intent:      IntentChat,
 			Response:    "¡Hola! ¿En qué puedo ayudarte hoy en el proyecto? Puedes hacerme preguntas sobre la arquitectura o pedirme que agregue o modifique código.",
 			TokensUsed:  tokens,
 			DurationSec: 1,
-			Thought:     "Identificada intención de saludo, preparando asistencia interactiva en el repositorio.",
+			Thought:     "Greeting intent identified, preparing interactive assistance.",
+			Steps:       nil,
+		}, nil
+	} else if trimmed == "hello" || trimmed == "hi" || trimmed == "hey" || trimmed == "how are you" || trimmed == "how are you?" {
+		tokens := (len(userInput) + 120) / 4
+		return &ExecutionResult{
+			Intent:      IntentChat,
+			Response:    "Hello! How can I help you today with the project? You can ask me questions about the architecture or ask me to add or modify code.",
+			TokensUsed:  tokens,
+			DurationSec: 1,
+			Thought:     "Greeting intent identified, preparing interactive assistance.",
 			Steps:       nil,
 		}, nil
 	}
 
-	// 1. Capa 1 Arnés: Repo Map Grounding
+	// 1. Layer 1 Harness: Repo Map Grounding
 	if o.Callbacks.OnStatusChange != nil {
-		o.Callbacks.OnStatusChange("Analizando contexto del proyecto...")
+		o.Callbacks.OnStatusChange("Analyzing project context...")
 	}
 
 	mapText, err := o.repoMap.Generate()
 	if err != nil {
-		mapText = "Repo Map no disponible"
+		mapText = "Repo Map not available"
 	}
 
-	// 2. Ejecución de Planner con detección de intención
+	// 2. Planner execution with intent detection
 	if o.Callbacks.OnStatusChange != nil {
-		o.Callbacks.OnStatusChange("Pensando...")
+		o.Callbacks.OnStatusChange("Thinking...")
 	}
 
 	planRes, err := o.planner.PlanTask(ctx, userInput, mapText, onChunk)
 	if err != nil {
-		return nil, fmt.Errorf("fallo en análisis: %w", err)
+		return nil, fmt.Errorf("analysis failed: %w", err)
 	}
 
-	// Si es conversación o consulta sin cambios en archivos
+	// If conversational or conceptual question with no code changes
 	if planRes.Intent == IntentChat {
 		durSec := int(time.Since(start).Seconds())
 		if durSec <= 0 {
@@ -101,15 +111,15 @@ func (o *Orchestrator) ProcessInput(
 			Response:    planRes.Content,
 			TokensUsed:  planRes.TokensUsed,
 			DurationSec: durSec,
-			Thought:     fmt.Sprintf("Analizando consulta con grafo de dependencias y AST: %q", userInput),
+			Thought:     fmt.Sprintf("Analyzing query with dependency graph and AST: %q", userInput),
 			Steps: []ExecutionStep{
-				{ToolName: "Graphify/AST", Details: "Consultando dependencias y símbolos del proyecto", Status: "success"},
-				{ToolName: "Planner", Details: "Clasificación de intención como respuesta conceptual directa", Status: "success"},
+				{ToolName: "Graphify/AST", Details: "Querying project dependencies and symbols", Status: "success"},
+				{ToolName: "Planner", Details: "Intent classification as direct conceptual response", Status: "success"},
 			},
 		}, nil
 	}
 
-	// Si es una tarea de modificación de código
+	// If code modification task
 	plan := planRes.Plan
 	if plan == nil {
 		durSec := int(time.Since(start).Seconds())
@@ -121,9 +131,9 @@ func (o *Orchestrator) ProcessInput(
 			Response:    planRes.Content,
 			TokensUsed:  planRes.TokensUsed,
 			DurationSec: durSec,
-			Thought:     fmt.Sprintf("Analizando contexto del proyecto: %q", userInput),
+			Thought:     fmt.Sprintf("Analyzing project context: %q", userInput),
 			Steps: []ExecutionStep{
-				{ToolName: "Graphify/AST", Details: "Consultando dependencias y símbolos del proyecto", Status: "success"},
+				{ToolName: "Graphify/AST", Details: "Querying project dependencies and symbols", Status: "success"},
 			},
 		}, nil
 	}
@@ -132,22 +142,43 @@ func (o *Orchestrator) ProcessInput(
 		o.Callbacks.OnPlanReady(plan)
 	}
 
-	// 3. Coder Agent: Preparar contexto de archivos
+	// 3. Coder Agent: Prepare file context from plan and user input
 	if o.Callbacks.OnStatusChange != nil {
-		o.Callbacks.OnStatusChange("Coder Agent: Generando unified diff con directiva 'ponytail'...")
+		o.Callbacks.OnStatusChange("Coder Agent: Generating unified diff with 'ponytail' directive...")
 	}
 
 	fileContexts := make(map[string]string)
+	candidateFiles := append([]string{}, plan.Files...)
 	for _, step := range plan.Steps {
-		for _, f := range step.Files {
-			p := filepath.Join(o.workDir, f)
-			if data, err := os.ReadFile(p); err == nil {
-				fileContexts[f] = string(data)
-			}
+		candidateFiles = append(candidateFiles, step.Files...)
+	}
+
+	// Also extract potential filenames mentioned in userInput or plan summary
+	combinedText := userInput + " " + plan.Summary + " " + planRes.Content
+	tokens := strings.FieldsFunc(combinedText, func(r rune) bool {
+		return r == ' ' || r == '\t' || r == '\n' || r == ',' || r == ';' || r == '`' || r == '"' || r == '\'' || r == '(' || r == ')'
+	})
+	for _, tok := range tokens {
+		tok = strings.Trim(tok, ":.,\"'`")
+		if strings.Contains(tok, ".") && !strings.Contains(tok, "...") {
+			candidateFiles = append(candidateFiles, tok)
 		}
 	}
 
-	// Loop de Coder + DryRun (Capa 3 Arnés) con hasta 2 auto-correcciones
+	seen := make(map[string]bool)
+	for _, f := range candidateFiles {
+		f = filepath.Clean(f)
+		if f == "" || f == "." || seen[f] {
+			continue
+		}
+		seen[f] = true
+		p := filepath.Join(o.workDir, f)
+		if data, err := os.ReadFile(p); err == nil {
+			fileContexts[f] = string(data)
+		}
+	}
+
+	// Coder + DryRun loop (Layer 3 Harness) with up to 2 auto-corrections
 	var currentPatch *Patch
 	var correctionFeedback string
 	maxDryRunAttempts := 2
@@ -155,24 +186,24 @@ func (o *Orchestrator) ProcessInput(
 	for attempt := 1; attempt <= maxDryRunAttempts; attempt++ {
 		patch, err := o.coder.GeneratePatch(ctx, userInput, plan, fileContexts, correctionFeedback, onChunk)
 		if err != nil {
-			return nil, fmt.Errorf("fallo generando diff: %w", err)
+			return nil, fmt.Errorf("diff generation failed: %w", err)
 		}
 
 		currentPatch = patch
 
-		// Capa 3 Arnés: Dry-Run en memoria
+		// Layer 3 Harness: Dry-Run in memory
 		dryRunErr := o.reviewer.DryRun(patch)
 		if dryRunErr == nil {
 			break
 		}
 
 		if attempt < maxDryRunAttempts {
-			correctionFeedback = fmt.Sprintf("git apply --check falló con: %v", dryRunErr)
+			correctionFeedback = fmt.Sprintf("git apply failed: %v", dryRunErr)
 			if o.Callbacks.OnStatusChange != nil {
-				o.Callbacks.OnStatusChange("Coder Agent: Corrigiendo contexto de diff tras fallo de dry-run...")
+				o.Callbacks.OnStatusChange("Coder Agent: Correcting diff context after dry-run failure...")
 			}
 		} else {
-			return nil, fmt.Errorf("parche no coincide con los archivos del repo tras %d intentos: %w", attempt, dryRunErr)
+			return nil, fmt.Errorf("patch does not match repo files after %d attempts: %w", attempt, dryRunErr)
 		}
 	}
 
@@ -203,7 +234,7 @@ func (o *Orchestrator) ProcessInput(
 		Patch:       currentPatch,
 		TokensUsed:  totalTokens,
 		DurationSec: durSec,
-		Thought:     fmt.Sprintf("Planificando intervención y generando unified diff para: %s", userInput),
+		Thought:     fmt.Sprintf("Planning intervention and generating unified diff for: %s", userInput),
 		Steps:       steps,
 	}, nil
 }
@@ -224,12 +255,12 @@ func (o *Orchestrator) PlanAndGeneratePatch(
 // ApplyAndVerify applies the approved patch to disk and executes compiler/linter verification
 func (o *Orchestrator) ApplyAndVerify(patch *Patch) (*harness.VerificationResult, error) {
 	if err := o.reviewer.Apply(patch); err != nil {
-		return nil, fmt.Errorf("error aplicando parche en disco: %w", err)
+		return nil, fmt.Errorf("error applying patch to disk: %w", err)
 	}
 
 	res, err := o.reviewer.Verify()
 	if err != nil {
-		return nil, fmt.Errorf("error ejecutando verificación determinista: %w", err)
+		return nil, fmt.Errorf("error executing deterministic verification: %w", err)
 	}
 
 	return res, nil

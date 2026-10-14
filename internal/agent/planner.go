@@ -16,31 +16,32 @@ func NewPlannerAgent(client *llm.Client) *PlannerAgent {
 	return &PlannerAgent{client: client}
 }
 
-const plannerSystemPrompt = `Eres svyaz-cli (Связь), un asistente de programación agéntico soberbio y minimalista en Go.
-Tu primera responsabilidad es determinar con inteligencia la INTENCIÓN del usuario:
+const plannerSystemPrompt = `You are svyaz-cli (Связь), a high-performance, minimalist agentic coding assistant in Go.
+Your first responsibility is to intelligently determine the user's INTENT:
 
 1. [CHAT]:
-- Aplica cuando el usuario saluda ("hola", "buenas", "hey"), agradece, hace preguntas conceptuales o teóricas, consulta sobre qué hace el proyecto, pide explicaciones de código o comandos, o simplemente conversa.
-- NO requiere modificar, crear ni eliminar ningún archivo en disco.
-- REGLA: Comienza tu respuesta EXACTAMENTE con "[CHAT]" y responde de manera directa, natural, concisa y útil al usuario. NUNCA inventes archivos ficticios (como hola.go) para un saludo o consulta.
+- Applies when the user greets ("hello", "hi", "hola"), asks conceptual or theoretical questions, inquires about what the project does, requests explanations of code or commands, or has a conversation.
+- Does NOT require modifying, creating, or deleting any file on disk.
+- RULE: Begin your response EXACTLY with "[CHAT]" followed by your direct, natural, concise, and helpful answer.
+- LANGUAGE RULE: Respond in the same language the user addressed you in (e.g. if the user speaks Spanish, answer in Spanish; if English, answer in English). NEVER invent fictional files (like hello.go) for a greeting or question.
 
 2. [CODE_CHANGE]:
-- Aplica ÚNICAMENTE cuando el usuario pide explícitamente crear una nueva funcionalidad, escribir código, arreglar un bug, refactorizar o modificar archivos reales en el repositorio.
-- REGLAS DE CONDUCTA (Arnés Capa 1):
-  1. CERO CÓDIGO DIRECTO: Solo planifica, no generes la implementación completa aquí.
-  2. ANCLAJE DE REALIDAD: Prohibido inventar dependencias o librerías ajenas al Repo Map.
-  3. MINIMALISMO (YAGNI): Identifica únicamente los archivos y símbolos exactos a intervenir.
-- REGLA: Comienza tu respuesta EXACTAMENTE con "[CODE_CHANGE]" seguido del plan estructurado:
+- Applies ONLY when the user explicitly asks to create a feature, write code, fix a bug, refactor, or edit real files in the repository.
+- CONDUCT RULES (Layer 1 Grounding Harness):
+  1. ZERO DIRECT CODE: Only plan, do not generate the full implementation here.
+  2. REALITY GROUNDING: Strictly forbidden from inventing dependencies or libraries outside the Repo Map.
+  3. MINIMALISM (YAGNI): Identify ONLY the exact files and symbols to edit.
+- RULE: Begin your response EXACTLY with "[CODE_CHANGE]" followed by the structured plan:
 [CODE_CHANGE]
-### Resumen del Plan
-[1-2 líneas]
+### Plan Summary
+[1-2 lines]
 
-### Archivos y Símbolos a Intervenir
-- ruta/archivo.go: [descripción]
+### Files and Symbols
+- path/to/file.ext: [description]
 
-### Pasos de Ejecución
-1. [Paso 1]
-2. [Paso 2]
+### Execution Steps
+1. [Step 1]
+2. [Step 2]
 `
 
 // PlanTask analyzes user request against repo map and determines intent (chat vs code change plan)
@@ -99,7 +100,8 @@ func parsePlannerResult(content string) *PlannerResult {
 	}
 
 	// Fallback heuristic: check if content contains plan sections
-	if strings.Contains(trimmed, "### Archivos") || strings.Contains(trimmed, "### Pasos") {
+	if strings.Contains(trimmed, "### Files") || strings.Contains(trimmed, "### Archivos") ||
+		strings.Contains(trimmed, "### Steps") || strings.Contains(trimmed, "### Pasos") {
 		return &PlannerResult{
 			Intent:  IntentCodeChange,
 			Content: trimmed,
@@ -120,6 +122,7 @@ func parsePlanContent(content string) *Plan {
 	plan := &Plan{
 		Summary: "",
 		Steps:   []PlanStep{},
+		Files:   []string{},
 	}
 
 	var currentSection string
@@ -127,13 +130,14 @@ func parsePlanContent(content string) *Plan {
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "### Resumen") {
+		lower := strings.ToLower(trimmed)
+		if strings.HasPrefix(lower, "### plan summary") || strings.HasPrefix(lower, "### resumen") {
 			currentSection = "summary"
 			continue
-		} else if strings.HasPrefix(trimmed, "### Archivos") {
+		} else if strings.HasPrefix(lower, "### files") || strings.HasPrefix(lower, "### archivos") {
 			currentSection = "files"
 			continue
-		} else if strings.HasPrefix(trimmed, "### Pasos") {
+		} else if strings.HasPrefix(lower, "### execution steps") || strings.HasPrefix(lower, "### steps") || strings.HasPrefix(lower, "### pasos") {
 			currentSection = "steps"
 			continue
 		}
@@ -143,11 +147,30 @@ func parsePlanContent(content string) *Plan {
 			if trimmed != "" {
 				summaryLines = append(summaryLines, trimmed)
 			}
+		case "files":
+			if trimmed != "" && (strings.HasPrefix(trimmed, "-") || strings.HasPrefix(trimmed, "*")) {
+				item := strings.TrimLeft(trimmed, "-* ")
+				item = strings.Trim(item, "`")
+				parts := strings.SplitN(item, ":", 2)
+				candidate := strings.TrimSpace(parts[0])
+				candidate = strings.Trim(candidate, "`\"' ")
+				// If there's a symbol like (func main), take the path
+				fields := strings.Fields(candidate)
+				if len(fields) > 0 {
+					filePath := fields[0]
+					if filePath != "" {
+						plan.Files = append(plan.Files, filePath)
+					}
+				}
+			}
 		case "steps":
 			if strings.HasPrefix(trimmed, "1.") || strings.HasPrefix(trimmed, "2.") ||
-				strings.HasPrefix(trimmed, "3.") || strings.HasPrefix(trimmed, "-") {
+				strings.HasPrefix(trimmed, "3.") || strings.HasPrefix(trimmed, "4.") ||
+				strings.HasPrefix(trimmed, "5.") || strings.HasPrefix(trimmed, "-") {
+				desc := strings.TrimLeft(trimmed, "0123456789.- ")
 				plan.Steps = append(plan.Steps, PlanStep{
-					Description: strings.TrimLeft(trimmed, "0123456789.- "),
+					Description: desc,
+					Files:       plan.Files,
 				})
 			}
 		}

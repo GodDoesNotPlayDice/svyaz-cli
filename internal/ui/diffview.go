@@ -41,9 +41,9 @@ func RenderDiffView(patch DiffPatch, width int) string {
 	// Decision prompt
 	decisionPrompt := fmt.Sprintf(
 		"\n%s  %s  %s",
-		DiffChoiceSelectedStyle.Render("[y] Aplicar"),
-		DiffChoiceDimStyle.Render("[e] Editar"),
-		DiffChoiceDimStyle.Render("[d] Descartar"),
+		DiffChoiceSelectedStyle.Render("[y] Apply"),
+		DiffChoiceDimStyle.Render("[e] Edit"),
+		DiffChoiceDimStyle.Render("[d] Discard"),
 	)
 	lines = append(lines, decisionPrompt)
 

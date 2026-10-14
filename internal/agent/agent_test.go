@@ -75,6 +75,29 @@ Crear función Suma.
 	if codeRes.Plan == nil || !strings.Contains(codeRes.Plan.Summary, "Crear función Suma") {
 		t.Errorf("expected parsed Plan, got %+v", codeRes.Plan)
 	}
+
+	englishPlanRaw := `[CODE_CHANGE]
+### Plan Summary
+Add health check endpoint.
+
+### Files and Symbols
+- cmd/root.go: Add command
+- internal/ui/tui.go: Update view
+
+### Execution Steps
+1. Define HealthCheck
+2. Register route
+`
+	engRes := parsePlannerResult(englishPlanRaw)
+	if engRes.Intent != IntentCodeChange {
+		t.Errorf("expected IntentCodeChange, got %s", engRes.Intent)
+	}
+	if engRes.Plan == nil || len(engRes.Plan.Files) != 2 {
+		t.Errorf("expected 2 files extracted in Plan, got %+v", engRes.Plan)
+	}
+	if engRes.Plan.Files[0] != "cmd/root.go" || engRes.Plan.Files[1] != "internal/ui/tui.go" {
+		t.Errorf("expected [cmd/root.go internal/ui/tui.go], got %v", engRes.Plan.Files)
+	}
 }
 
 func TestOrchestrator_GreetingIntent(t *testing.T) {
@@ -91,6 +114,15 @@ func TestOrchestrator_GreetingIntent(t *testing.T) {
 	}
 	if !strings.Contains(res.Response, "¡Hola!") {
 		t.Errorf("expected greeting response, got '%s'", res.Response)
+	}
+
+	// English greeting
+	engRes, err := orch.ProcessInput(nil, "Hello", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(engRes.Response, "Hello!") {
+		t.Errorf("expected English greeting, got '%s'", engRes.Response)
 	}
 }
 
