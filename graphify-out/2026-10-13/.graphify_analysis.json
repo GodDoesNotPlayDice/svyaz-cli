@@ -362,30 +362,63 @@
       "why": "connects across different repos/directories"
     },
     {
-      "source": "TestCompressOutput()",
-      "target": "CompressOutput()",
+      "source": "Model",
+      "target": "Orchestrator",
       "source_files": [
-        "internal/context/repomap_test.go",
-        "internal/context/compressor.go"
+        "internal/ui/tui.go",
+        "internal/agent/orchestrator.go"
       ],
-      "confidence": "INFERRED",
-      "relation": "calls",
-      "why": "inferred connection - not explicitly stated in source"
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "bridges separate communities"
     },
     {
-      "source": "TestExtractDiff_MarkdownBlock()",
-      "target": "ExtractDiff()",
+      "source": "Model",
+      "target": "Patch",
       "source_files": [
-        "internal/agent/agent_test.go",
-        "internal/agent/coder.go"
+        "internal/ui/tui.go",
+        "internal/agent/types.go"
       ],
-      "confidence": "INFERRED",
-      "relation": "calls",
-      "why": "inferred connection - not explicitly stated in source"
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "bridges separate communities"
     }
   ],
-  "tokens": {
-    "input": 0,
-    "output": 0
-  }
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `Model` connect `Model` to `tui.go`, `header_test.go`, `verifier.go`, `Client`?",
+      "why": "High betweenness centrality (0.119) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `github.com/xaxa/svyaz-cli` to the rest of the system?",
+      "why": "1 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `tui.go` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `ModelPool` connect `header_test.go` to `tui.go`, `llm/types.go`, `Client`?",
+      "why": "High betweenness centrality (0.081) - this node is a cross-community bridge."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Model` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.10344827586206896 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `Client` connect `Client` to `tui.go`, `header_test.go`, `llm/types.go`?",
+      "why": "High betweenness centrality (0.080) - this node is a cross-community bridge."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `header_test.go` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.1206896551724138 - nodes in this community are weakly interconnected."
+    }
+  ]
 }
