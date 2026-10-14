@@ -4,27 +4,25 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/xaxa/svyaz-cli/internal/mcp"
 	"github.com/xaxa/svyaz-cli/internal/ui"
 )
 
 var mcpCmd = &cobra.Command{
 	Use:   "mcp",
-	Short: "Inspecciona y verifica los servidores MCP configurados",
+	Short: "Inspect and verify configured MCP servers and active tools",
+	Run: func(cmd *cobra.Command, args []string) {
+		servers, location := mcp.DiscoverServers()
+		fmt.Println(ui.RenderMCPView(servers, location, 0, "", 100))
+	},
 }
 
 var mcpListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "Lista todos los servidores MCP configurados y su estado",
+	Short: "List all configured MCP servers and their status",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(ui.BrandStyle.Render("Servidores MCP configurados:"))
-		if cfg == nil || len(cfg.MCPServers) == 0 {
-			fmt.Println("  No hay servidores MCP configurados.")
-			return
-		}
-
-		for name, srv := range cfg.MCPServers {
-			fmt.Printf("  • %s: %s %v\n", ui.MetaModelStyle.Render(name), srv.Command, srv.Args)
-		}
+		servers, location := mcp.DiscoverServers()
+		fmt.Println(ui.RenderMCPView(servers, location, 0, "", 100))
 	},
 }
 

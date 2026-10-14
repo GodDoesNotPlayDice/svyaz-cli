@@ -13,6 +13,8 @@ import (
 	"github.com/xaxa/svyaz-cli/internal/agent"
 	"github.com/xaxa/svyaz-cli/internal/harness"
 	"github.com/xaxa/svyaz-cli/internal/llm"
+	"github.com/xaxa/svyaz-cli/internal/mcp"
+	"github.com/xaxa/svyaz-cli/internal/session"
 )
 
 type AppState int
@@ -23,6 +25,8 @@ const (
 	StateCoding
 	StateConfirmPatch
 	StateReviewing
+	StateMCPMenu
+	StateResumeMenu
 )
 
 type MessageItem struct {
@@ -39,12 +43,14 @@ type SlashCommand struct {
 }
 
 var defaultSlashCommands = []SlashCommand{
-	{Name: "/help", Description: "Mostrar comandos y atajos disponibles"},
-	{Name: "/clear", Description: "Limpiar historial de la pantalla"},
-	{Name: "/status", Description: "Estado del sistema, modelo y arnés"},
-	{Name: "/plan", Description: "Planificar tarea con Graphify y AST"},
-	{Name: "/verify", Description: "Ejecutar verificación determinista local"},
-	{Name: "/quit", Description: "Salir de svyaz-cli"},
+	{Name: "/help", Description: "Show available commands and shortcuts"},
+	{Name: "/clear", Description: "Clear screen history and start fresh chat"},
+	{Name: "/resume", Description: "Resume previous chat session"},
+	{Name: "/mcp", Description: "Inspect MCP servers and available tools"},
+	{Name: "/status", Description: "System, model, and harness status"},
+	{Name: "/plan", Description: "Plan task with Graphify and AST"},
+	{Name: "/verify", Description: "Run local deterministic verification"},
+	{Name: "/quit", Description: "Exit svyaz-cli"},
 }
 
 type Model struct {
@@ -64,6 +70,13 @@ type Model struct {
 	width                 int
 	height                int
 	ready                 bool
+	currentSessionID      string
+	mcpServers            []mcp.MCPServerInfo
+	mcpLocation           string
+	mcpIndex              int
+	mcpExpanded           string
+	resumeSessions        []session.Session
+	resumeIndex           int
 }
 
 func NewModel(info HeaderInfo, orch ...*agent.Orchestrator) Model {
@@ -89,13 +102,14 @@ func NewModel(info HeaderInfo, orch ...*agent.Orchestrator) Model {
 	}
 
 	return Model{
-		state:        StateIdle,
-		headerInfo:   info,
-		input:        ti,
-		spinner:      sp,
-		spinnerText:  "Analizando proyecto con Graphify y AST...",
-		orchestrator: o,
-		messages:     []MessageItem{},
+		state:            StateIdle,
+		headerInfo:       info,
+		input:            ti,
+		spinner:          sp,
+		spinnerText:      "Analyzing project with Graphify and AST...",
+		orchestrator:     o,
+		messages:         []MessageItem{},
+		currentSessionID: session.NewSessionID(),
 	}
 }
 
@@ -112,6 +126,102 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.state == StateMCPMenu {
+			switch msg.Type {
+			case tea.KeyCtrlC:
+				return m, tea.Quit
+			case tea.KeyEsc, tea.KeyLeft:
+				m.state = StateIdle
+				m.headerInfo.ModelStatus = "Ready"
+				return m, nil
+			case tea.KeyUp:
+				if len(m.mcpServers) > 0 {
+					m.mcpIndex--
+					if m.mcpIndex < 0 {
+						m.mcpIndex = len(m.mcpServers) - 1
+					}
+				}
+				return m, nil
+			case tea.KeyDown:
+				if len(m.mcpServers) > 0 {
+					m.mcpIndex++
+					if m.mcpIndex >= len(m.mcpServers) {
+						m.mcpIndex = 0
+					}
+				}
+				return m, nil
+			case tea.KeyEnter:
+				if len(m.mcpServers) > 0 && m.mcpIndex >= 0 && m.mcpIndex < len(m.mcpServers) {
+					srv := m.mcpServers[m.mcpIndex]
+					if m.mcpExpanded == srv.Name {
+						m.mcpExpanded = ""
+					} else {
+						m.mcpExpanded = srv.Name
+					}
+				}
+				return m, nil
+			}
+			return m, nil
+		}
+
+		if m.state == StateResumeMenu {
+			switch msg.Type {
+			case tea.KeyCtrlC:
+				return m, tea.Quit
+			case tea.KeyEsc, tea.KeyLeft:
+				m.state = StateIdle
+				m.headerInfo.ModelStatus = "Ready"
+				return m, nil
+			case tea.KeyUp:
+				if len(m.resumeSessions) > 0 {
+					m.resumeIndex--
+					if m.resumeIndex < 0 {
+						m.resumeIndex = len(m.resumeSessions) - 1
+					}
+				}
+				return m, nil
+			case tea.KeyDown:
+				if len(m.resumeSessions) > 0 {
+					m.resumeIndex++
+					if m.resumeIndex >= len(m.resumeSessions) {
+						m.resumeIndex = 0
+					}
+				}
+				return m, nil
+			case tea.KeyEnter:
+				if len(m.resumeSessions) > 0 && m.resumeIndex >= 0 && m.resumeIndex < len(m.resumeSessions) {
+					m.saveCurrentSession()
+					sel := m.resumeSessions[m.resumeIndex]
+					loaded, err := session.LoadSession(sel.ID)
+					if err == nil && loaded != nil {
+						m.messages = loadSessionToMessages(loaded)
+						m.currentSessionID = loaded.ID
+						m.addMessage(MessageItem{
+							Role:    "agent",
+							Content: fmt.Sprintf("Resumed session \"%s\" (%s)", loaded.Title, loaded.UpdatedAt.Format("2006-01-02 15:04")),
+						})
+					}
+					m.state = StateIdle
+					m.headerInfo.ModelStatus = "Ready"
+					m.updateViewportContent()
+				}
+				return m, nil
+			}
+
+			if msg.String() == "d" || msg.String() == "D" {
+				if len(m.resumeSessions) > 0 && m.resumeIndex >= 0 && m.resumeIndex < len(m.resumeSessions) {
+					sel := m.resumeSessions[m.resumeIndex]
+					_ = session.DeleteSession(sel.ID)
+					m.resumeSessions, _ = session.ListSessions()
+					if m.resumeIndex >= len(m.resumeSessions) && m.resumeIndex > 0 {
+						m.resumeIndex = len(m.resumeSessions) - 1
+					}
+				}
+				return m, nil
+			}
+			return m, nil
+		}
+
 		matching := m.getMatchingCommands()
 		isMenuOpen := len(matching) > 0 && !m.autocompleteDismissed
 
@@ -130,7 +240,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.headerInfo.ModelStatus = "Ready"
 				m.addMessage(MessageItem{
 					Role:    "agent",
-					Content: "Parche cancelado.",
+					Content: "Patch cancelled.",
 				})
 				m.updateViewportContent()
 				return m, nil
@@ -193,23 +303,48 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if val == "/clear" {
+				m.saveCurrentSession()
 				m.messages = nil
+				m.currentSessionID = session.NewSessionID()
 				m.input.SetValue("")
 				m.updateViewportContent()
+				return m, nil
+			}
+
+			if val == "/mcp" {
+				m.mcpServers, m.mcpLocation = mcp.DiscoverServers()
+				m.mcpIndex = 0
+				m.mcpExpanded = ""
+				m.state = StateMCPMenu
+				m.headerInfo.ModelStatus = "MCP View"
+				m.input.SetValue("")
+				return m, nil
+			}
+
+			if val == "/resume" {
+				m.saveCurrentSession()
+				sessions, _ := session.ListSessions()
+				m.resumeSessions = sessions
+				m.resumeIndex = 0
+				m.state = StateResumeMenu
+				m.headerInfo.ModelStatus = "Resume Session"
+				m.input.SetValue("")
 				return m, nil
 			}
 
 			if val == "?" || val == "/help" {
 				m.addMessage(MessageItem{
 					Role: "agent",
-					Content: "Atajos y comandos disponibles:\n" +
-						"  /help   - Mostrar comandos y atajos disponibles\n" +
-						"  /clear  - Limpiar historial de la pantalla\n" +
-						"  /status - Estado del sistema, modelo y arnés\n" +
-						"  /plan   - Planificar tarea con Graphify y AST\n" +
-						"  /verify - Ejecutar verificación determinista local\n" +
-						"  /quit   - Salir de svyaz-cli\n" +
-						"  Esc     - Cancelar acción o cerrar menú",
+					Content: "Available commands and shortcuts:\n" +
+						"  /help   - Show available commands and shortcuts\n" +
+						"  /clear  - Clear screen history and start fresh chat\n" +
+						"  /resume - View and restore previous chat sessions\n" +
+						"  /mcp    - Inspect MCP servers and available tools\n" +
+						"  /status - System, model, and harness status\n" +
+						"  /plan   - Plan task with Graphify and AST\n" +
+						"  /verify - Run local deterministic verification\n" +
+						"  /quit   - Exit svyaz-cli\n" +
+						"  Esc     - Cancel action or close menu",
 				})
 				m.input.SetValue("")
 				m.updateViewportContent()
@@ -219,10 +354,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if val == "/status" {
 				m.addMessage(MessageItem{
 					Role: "agent",
-					Content: fmt.Sprintf("Estado del sistema:\n"+
-						"  Modelo activo: %s\n"+
-						"  Directorio: %s\n"+
-						"  Arnés: 4 Capas Activas (Grounding, MCP Gate, Dry-Run, Linter Loop)\n"+
+					Content: fmt.Sprintf("System status:\n"+
+						"  Active model: %s\n"+
+						"  Directory: %s\n"+
+						"  Harness: 4 Active Layers (Grounding, MCP Gate, Dry-Run, Linter Loop)\n"+
 						"  Skills: ponytail, ast-navigator",
 						m.headerInfo.CurrentModel, m.headerInfo.WorkDir),
 				})
@@ -239,13 +374,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.SetValue("")
 				m.state = StatePlanning
 				m.headerInfo.ModelStatus = "Planning..."
-				m.spinnerText = "Planner Agent: Consultando grafo de dependencias y AST..."
+				m.spinnerText = "Planner Agent: Querying dependency graph and AST..."
 				m.addMessage(MessageItem{
 					Role: "tool",
 					Badge: &ToolBadge{
 						ToolName: "planner",
 						Action:   "repo-map",
-						Details:  "Analizando mapa del repositorio y símbolos clave...",
+						Details:  "Analyzing repository map and key symbols...",
 						Status:   ActionSuccess,
 					},
 				})
@@ -255,7 +390,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, tea.Batch(
 						m.spinner.Tick,
 						func() tea.Msg {
-							res, err := orch.ProcessInput(context.Background(), "Analizar arquitectura del proyecto y planificar tareas", nil)
+							res, err := orch.ProcessInput(context.Background(), "Analyze project architecture and plan tasks", nil)
 							return taskResultMsg{Result: res, Err: err}
 						},
 					)
@@ -276,7 +411,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.SetValue("")
 				m.state = StateReviewing
 				m.headerInfo.ModelStatus = "Verifying..."
-				m.spinnerText = "Reviewer Agent: Ejecutando verificación determinista local..."
+				m.spinnerText = "Reviewer Agent: Running local deterministic verification..."
 				m.updateViewportContent()
 				if m.orchestrator != nil {
 					orch := m.orchestrator
@@ -306,13 +441,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Start Planner/Coder pipeline
 			m.state = StatePlanning
 			m.headerInfo.ModelStatus = "Thinking..."
-			m.spinnerText = "Planner Agent: Consultando grafo de dependencias y AST..."
+			m.spinnerText = "Planner Agent: Querying dependency graph and AST..."
 			m.addMessage(MessageItem{
 				Role: "tool",
 				Badge: &ToolBadge{
 					ToolName: "Graphify/AST",
 					Action:   "ast-graph",
-					Details:  "ast-graph: consultando dependencias y símbolos",
+					Details:  "ast-graph: querying dependencies and symbols",
 					Status:   ActionSuccess,
 				},
 			})
@@ -348,10 +483,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "y", "Y":
 				m.state = StateReviewing
 				m.headerInfo.ModelStatus = "Verifying..."
-				m.spinnerText = "Reviewer Agent: Ejecutando verificación determinista local..."
+				m.spinnerText = "Reviewer Agent: Running local deterministic verification..."
 				m.addMessage(MessageItem{
 					Role:    "agent",
-					Content: "Parche aprobado. Aplicando en disco y validando...",
+					Content: "Patch approved. Applying to disk and verifying...",
 				})
 				m.updateViewportContent()
 
@@ -370,6 +505,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, func() tea.Msg {
 					return reviewerFinishedMsg{}
 				}
+			case "e", "E":
+				m.state = StateIdle
+				m.headerInfo.ModelStatus = "Edit Mode"
+				m.input.SetValue("")
+				m.input.Placeholder = "Enter adjustment instructions for the patch..."
+				m.input.Focus()
+				m.addMessage(MessageItem{
+					Role:    "agent",
+					Content: "Patch edit mode: type your refinement instructions below to adjust the patch, or press Esc to cancel.",
+				})
+				m.updateViewportContent()
+				return m, textinput.Blink
 			case "d", "D", "n", "N":
 				m.state = StateIdle
 				m.headerInfo.ModelStatus = "Ready"
@@ -377,7 +524,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.rawPatch = nil
 				m.addMessage(MessageItem{
 					Role:    "agent",
-					Content: "Parche descartado por el usuario.",
+					Content: "Patch discarded by user.",
 				})
 				m.updateViewportContent()
 				return m, nil
@@ -399,7 +546,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 			m.addMessage(MessageItem{
 				Role:    "agent",
-				Content: fmt.Sprintf("Error procesando solicitud: %v", msg.Err),
+				Content: fmt.Sprintf("Error processing request: %v", msg.Err),
 			})
 			m.updateViewportContent()
 			return m, nil
@@ -457,6 +604,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Role:    "agent",
 				Content: msg.Result.Response,
 			})
+			m.saveCurrentSession()
 			m.updateViewportContent()
 			return m, nil
 		}
@@ -501,7 +649,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 			m.addMessage(MessageItem{
 				Role:    "agent",
-				Content: fmt.Sprintf("Error aplicando/verificando: %v", msg.Err),
+				Content: fmt.Sprintf("Error applying/verifying: %v", msg.Err),
 			})
 		} else if msg.Result != nil && !msg.Result.Success {
 			m.headerInfo.ModelStatus = "Failed"
@@ -515,7 +663,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 			m.addMessage(MessageItem{
 				Role:    "agent",
-				Content: fmt.Sprintf("Salida del compilador/linter:\n%s", msg.Result.Output),
+				Content: fmt.Sprintf("Compiler/linter output:\n%s", msg.Result.Output),
 			})
 		} else {
 			m.headerInfo.ModelStatus = "Ready"
@@ -542,9 +690,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 			m.addMessage(MessageItem{
 				Role:    "agent",
-				Content: "Tarea completada con éxito. Todos los chequeos deterministas pasaron.",
+				Content: "Task completed successfully. All deterministic checks passed.",
 			})
 		}
+		m.saveCurrentSession()
 		m.updateViewportContent()
 		return m, nil
 
@@ -564,7 +713,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case plannerFinishedMsg:
 		m.state = StateCoding
 		m.headerInfo.ModelStatus = "Generating Patch..."
-		m.spinnerText = "Coder Agent: Generando parche conciso con skill 'ponytail'..."
+		m.spinnerText = "Coder Agent: Generating concise patch with 'ponytail' skill..."
 		m.addMessage(MessageItem{
 			Role: "thought",
 			Thought: &ThoughtInfo{
@@ -934,9 +1083,9 @@ func (m Model) renderAutocompleteMenu() string {
 		keyNav, textNav, dot, keyEnter, textEnter, dot, keyTab, textTab))
 
 	// Shortcut navigation hint line 2 (directly under navigate):
-	// esc para salir de ese pequeño menú
+	// esc to exit menu
 	keyEsc := MenuHintKeyStyle.Render("esc")
-	textEsc := MenuHintTextStyle.Render(" para salir de ese pequeño menú")
+	textEsc := MenuHintTextStyle.Render(" to exit menu")
 	sb.WriteString(fmt.Sprintf("  %s%s", keyEsc, textEsc))
 
 	return sb.String()
@@ -944,16 +1093,49 @@ func (m Model) renderAutocompleteMenu() string {
 
 func (m Model) View() string {
 	if !m.ready {
-		return "Inicializando svyaz-cli..."
+		return "Initializing svyaz-cli..."
 	}
 
 	header := RenderHeader(m.headerInfo, m.width)
 	footer := RenderFooter(m.headerInfo.CurrentModel, m.width)
+	footerH := lipgloss.Height(footer)
+
+	if m.state == StateMCPMenu {
+		mcpView := RenderMCPView(m.mcpServers, m.mcpLocation, m.mcpIndex, m.mcpExpanded, m.width)
+		mcpBox := lipgloss.NewStyle().Padding(1, 2).Render(mcpView)
+		body := lipgloss.JoinVertical(
+			lipgloss.Left,
+			header,
+			mcpBox,
+		)
+		usedLines := lipgloss.Height(body)
+		remaining := m.height - usedLines - footerH
+		if remaining < 0 {
+			remaining = 0
+		}
+		return body + strings.Repeat("\n", remaining) + footer
+	}
+
+	if m.state == StateResumeMenu {
+		resumeView := RenderResumeView(m.resumeSessions, m.resumeIndex, m.width)
+		resumeBox := lipgloss.NewStyle().Padding(1, 2).Render(resumeView)
+		body := lipgloss.JoinVertical(
+			lipgloss.Left,
+			header,
+			resumeBox,
+		)
+		usedLines := lipgloss.Height(body)
+		remaining := m.height - usedLines - footerH
+		if remaining < 0 {
+			remaining = 0
+		}
+		return body + strings.Repeat("\n", remaining) + footer
+	}
+
 	inputArea := m.renderInputArea()
 	menuStr := m.renderAutocompleteMenu()
 
 	headerH := lipgloss.Height(header)
-	footerH := lipgloss.Height(footer)
 	inputH := lipgloss.Height(inputArea)
 	menuH := 0
 	if menuStr != "" {
@@ -1018,4 +1200,93 @@ func (m Model) View() string {
 		inputWithMenu,
 		footer,
 	)
+}
+
+func (m *Model) saveCurrentSession() {
+	if len(m.messages) == 0 {
+		return
+	}
+	var sessMsgs []session.SessionMessage
+	for _, item := range m.messages {
+		sMsg := session.SessionMessage{
+			Role:    item.Role,
+			Content: item.Content,
+		}
+		if item.Badge != nil {
+			sMsg.ToolName = item.Badge.ToolName
+			sMsg.Action = item.Badge.Action
+			sMsg.Details = item.Badge.Details
+			sMsg.Status = actionStatusToString(item.Badge.Status)
+		}
+		if item.Patch != nil {
+			sMsg.DiffFile = item.Patch.FilePath
+			sMsg.DiffText = item.Patch.DiffText
+			sMsg.AddCount = item.Patch.AddCount
+			sMsg.DelCount = item.Patch.DelCount
+		}
+		if item.Thought != nil {
+			sMsg.Duration = item.Thought.Duration
+			sMsg.Tokens = item.Thought.Tokens
+			sMsg.Summary = item.Thought.Summary
+		}
+		sessMsgs = append(sessMsgs, sMsg)
+	}
+
+	if m.currentSessionID == "" {
+		m.currentSessionID = session.NewSessionID()
+	}
+
+	sess := &session.Session{
+		ID:       m.currentSessionID,
+		Messages: sessMsgs,
+	}
+	_ = session.SaveSession(sess)
+}
+
+func actionStatusToString(s ActionStatus) string {
+	switch s {
+	case ActionPending:
+		return "pending"
+	case ActionWarning:
+		return "warning"
+	case ActionError:
+		return "error"
+	default:
+		return "success"
+	}
+}
+
+func loadSessionToMessages(sess *session.Session) []MessageItem {
+	var items []MessageItem
+	for _, sm := range sess.Messages {
+		item := MessageItem{
+			Role:    sm.Role,
+			Content: sm.Content,
+		}
+		if sm.ToolName != "" || sm.Details != "" {
+			item.Badge = &ToolBadge{
+				ToolName: sm.ToolName,
+				Action:   sm.Action,
+				Details:  sm.Details,
+				Status:   toActionStatus(sm.Status),
+			}
+		}
+		if sm.DiffFile != "" || sm.DiffText != "" {
+			item.Patch = &DiffPatch{
+				FilePath: sm.DiffFile,
+				DiffText: sm.DiffText,
+				AddCount: sm.AddCount,
+				DelCount: sm.DelCount,
+			}
+		}
+		if sm.Summary != "" || sm.Tokens > 0 {
+			item.Thought = &ThoughtInfo{
+				Duration: sm.Duration,
+				Tokens:   sm.Tokens,
+				Summary:  sm.Summary,
+			}
+		}
+		items = append(items, item)
+	}
+	return items
 }
