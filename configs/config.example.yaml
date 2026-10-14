@@ -1,7 +1,7 @@
 # svyaz-cli configuration
 llm:
   provider: "freellmapi"
-  base_url: "http://147.224.225.246:3001/v1"
+  base_url: "${FREE_LLM_BASE_URL}"
   api_key: "${FREE_LLM_API_KEY}"
   primary_model: "codestral"
   cooldown_seconds: 60

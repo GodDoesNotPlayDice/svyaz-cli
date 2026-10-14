@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -43,17 +44,85 @@ type Config struct {
 	Agent      AgentConfig                `yaml:"agent"`
 }
 
-// DefaultConfig returns a sane default configuration optimized for FreeLLMAPI
-func DefaultConfig() *Config {
+// loadDotEnv loads environment variables from .env or .svyaz/.env files if present.
+// Existing environment variables are never overwritten.
+func loadDotEnv() {
+	paths := []string{".env", filepath.Join(".svyaz", ".env")}
+	for _, p := range paths {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) != 2 {
+				continue
+			}
+			key := strings.TrimSpace(parts[0])
+			val := strings.TrimSpace(parts[1])
+			val = strings.Trim(val, `"'`)
+			if os.Getenv(key) == "" {
+				os.Setenv(key, val)
+			}
+		}
+	}
+}
+
+// resolveLLMEnv resolves API key and base URL from environment variables or defaults
+func resolveLLMEnv() (string, string) {
+	loadDotEnv()
+
 	apiKey := os.Getenv("FREE_LLM_API_KEY")
+	if apiKey == "" {
+		apiKey = os.Getenv("API_KEY")
+	}
 	if apiKey == "" {
 		apiKey = "freellmapi-d1a9aacfeeeec76524e36844e64b975ee9f30934ba79b5ba"
 	}
 
+	baseURL := os.Getenv("FREE_LLM_BASE_URL")
+	if baseURL == "" {
+		serverURL := os.Getenv("FREE_LLM_SERVER_URL")
+		if serverURL == "" {
+			serverURL = os.Getenv("SERVER_URL")
+		}
+		if serverURL != "" {
+			serverURL = strings.TrimRight(serverURL, "/")
+			if !strings.HasSuffix(serverURL, "/v1") {
+				baseURL = serverURL + "/v1"
+			} else {
+				baseURL = serverURL
+			}
+		}
+	}
+	if baseURL == "" {
+		baseURL = "http://147.224.225.246:3001/v1"
+	}
+
+	// Keep environment variables synced for os.ExpandEnv
+	if os.Getenv("FREE_LLM_API_KEY") == "" {
+		os.Setenv("FREE_LLM_API_KEY", apiKey)
+	}
+	if os.Getenv("FREE_LLM_BASE_URL") == "" {
+		os.Setenv("FREE_LLM_BASE_URL", baseURL)
+	}
+
+	return apiKey, baseURL
+}
+
+// DefaultConfig returns a sane default configuration optimized for FreeLLMAPI
+func DefaultConfig() *Config {
+	apiKey, baseURL := resolveLLMEnv()
+
 	return &Config{
 		LLM: LLMConfig{
 			Provider:        "freellmapi",
-			BaseURL:         "http://147.224.225.246:3001/v1",
+			BaseURL:         baseURL,
 			APIKey:          apiKey,
 			Model:           "codestral",
 			PrimaryModel:    "codestral",
@@ -162,6 +231,14 @@ func Load(customPath string) (*Config, error) {
 	expanded := os.ExpandEnv(string(data))
 	if err := yaml.Unmarshal([]byte(expanded), cfg); err != nil {
 		return nil, fmt.Errorf("parsing config yaml %s: %w", path, err)
+	}
+
+	apiKey, baseURL := resolveLLMEnv()
+	if cfg.LLM.APIKey == "" {
+		cfg.LLM.APIKey = apiKey
+	}
+	if cfg.LLM.BaseURL == "" {
+		cfg.LLM.BaseURL = baseURL
 	}
 
 	return cfg, nil

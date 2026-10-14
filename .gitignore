@@ -8,7 +8,13 @@ svyaz
 # Local configuration & state
 .svyaz/
 *.log
+.env
+.env.*
+!.env.example
 
 # Test & coverage
 *.out
 *.test
+
+# Graphify AST cache
+graphify-out/cache/
