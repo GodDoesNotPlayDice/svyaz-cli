@@ -341,7 +341,7 @@ func TestSlashCommandAutocomplete(t *testing.T) {
 	if !strings.Contains(view, "Navigate") || !strings.Contains(view, "enter Select") || !strings.Contains(view, "tab complete") {
 		t.Errorf("expected autocomplete navigation hint, got:\n%s", view)
 	}
-	if !strings.Contains(view, "esc para salir de ese pequeño menú") {
+	if !strings.Contains(view, "esc to exit menu") {
 		t.Errorf("expected esc exit hint, got:\n%s", view)
 	}
 
@@ -398,7 +398,7 @@ func TestSlashCommandAutocomplete(t *testing.T) {
 
 	// Since /help was selected, messages should contain help text
 	viewAfterEnter := m.View()
-	if !strings.Contains(viewAfterEnter, "Atajos y comandos disponibles") {
+	if !strings.Contains(viewAfterEnter, "Available commands and shortcuts") {
 		t.Errorf("expected /help command to execute on Enter, got:\n%s", viewAfterEnter)
 	}
 }

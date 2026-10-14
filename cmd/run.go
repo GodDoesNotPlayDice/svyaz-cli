@@ -13,8 +13,8 @@ import (
 )
 
 var runCmd = &cobra.Command{
-	Use:   "run [tarea]",
-	Short: "Ejecuta una tarea agéntica en modo headless/batch sin TUI",
+	Use:   "run [task]",
+	Short: "Run an agentic task in headless/batch mode without TUI",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		task := strings.Join(args, " ")
@@ -79,7 +79,7 @@ var runCmd = &cobra.Command{
 				fmt.Println(ui.RenderToolBadge(ui.ToolBadge{
 					ToolName: "git",
 					Action:   "dry-run",
-					Details:  fmt.Sprintf("Parche verificado para %s (+%d/-%d)", patch.FilePath, patch.AddCount, patch.DelCount),
+					Details:  fmt.Sprintf("Patch verified for %s (+%d/-%d)", patch.FilePath, patch.AddCount, patch.DelCount),
 					Status:   ui.ActionSuccess,
 				}))
 			},
@@ -97,46 +97,46 @@ var runCmd = &cobra.Command{
 		runCtx := context.Background()
 		execRes, err := orch.ProcessInput(runCtx, task, nil)
 		if err != nil {
-			return fmt.Errorf("error procesando tarea: %w", err)
+			return fmt.Errorf("error processing task: %w", err)
 		}
 
 		if execRes.Intent == agent.IntentChat {
 			fmt.Printf("\n%s\n\n", execRes.Response)
-			fmt.Println(ui.AgentPrefixStyle.Render("svyaz: ") + "Listo.")
+			fmt.Println(ui.AgentPrefixStyle.Render("svyaz: ") + "Done.")
 			return nil
 		}
 
 		patch := execRes.Patch
 		if patch == nil {
-			return fmt.Errorf("no se generó parche para la tarea")
+			return fmt.Errorf("no patch was generated for the task")
 		}
 
-		fmt.Printf("\n%s\n%s\n", ui.MetaTitleStyle.Render("=== DIFF GENERADO ==="), patch.Diff)
+		fmt.Printf("\n%s\n%s\n", ui.MetaTitleStyle.Render("=== GENERATED DIFF ==="), patch.Diff)
 
 		// Apply and verify
 		res, err := orch.ApplyAndVerify(patch)
 		if err != nil {
-			return fmt.Errorf("error aplicando o verificando parche: %w", err)
+			return fmt.Errorf("error applying or verifying patch: %w", err)
 		}
 
 		if !res.Success {
 			fmt.Println(ui.RenderToolBadge(ui.ToolBadge{
 				ToolName: "verifier",
 				Action:   "check",
-				Details:  fmt.Sprintf("%s falló: %s", res.Command, res.Output),
+				Details:  fmt.Sprintf("%s failed: %s", res.Command, res.Output),
 				Status:   ui.ActionError,
 			}))
-			return fmt.Errorf("verificación determinista falló")
+			return fmt.Errorf("deterministic verification failed")
 		}
 
 		fmt.Println(ui.RenderToolBadge(ui.ToolBadge{
 			ToolName: "verifier",
 			Action:   "check",
-			Details:  fmt.Sprintf("%s: Verificación exitosa", res.Command),
+			Details:  fmt.Sprintf("%s: Verification successful", res.Command),
 			Status:   ui.ActionSuccess,
 		}))
 
-		fmt.Println("\n" + ui.AgentPrefixStyle.Render("svyaz: ") + "Tarea finalizada con éxito.")
+		fmt.Println("\n" + ui.AgentPrefixStyle.Render("svyaz: ") + "Task completed successfully.")
 		return nil
 	},
 }
